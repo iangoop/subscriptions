@@ -1,0 +1,32 @@
+{
+  "name": "firebase",
+  "version": "1.0.0",
+  "description": "Firebase development environment to support microservices and FE nodes",
+  "main": "index.js",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "@typescript-eslint/eslint-plugin": "^6.19.1",
+    "@typescript-eslint/parser": "^6.19.1",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "lint-staged": "^13.1.0",
+    "husky": "^8.0.3",
+    "prettier": "^3.2.4",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.1",
+    "tsconfig-paths": "^4.1.0",
+    "nodemon": "^2.0.20"
+  }
+}

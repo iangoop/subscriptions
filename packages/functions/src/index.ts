@@ -1,6 +1,8 @@
 import * as admin from 'firebase-admin';
+import * as functions from 'firebase-functions';
 import * as glob from 'glob';
 import * as _ from 'lodash';
+import { exportProduct } from './db/migration/products';
 
 admin.initializeApp();
 
@@ -29,3 +31,14 @@ for (let f = 0, fl = files.length; f < fl; f++) {
     exports[functionName] = require(file);
   }
 }
+
+export const migrate = functions.https.onCall((data, context) => {
+  console.log('testeee');
+  functions.logger.log('testeee');
+  return Promise.all([exportProduct()]);
+});
+
+export const test = functions.https.onCall((data, context) => {
+  console.log('hereee');
+  return { test: 'trye' };
+});

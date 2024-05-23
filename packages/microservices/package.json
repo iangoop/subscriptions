@@ -1,0 +1,52 @@
+{
+  "name": "@subscriptions/microservices",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=8.10.0"
+  },
+  "scripts": {
+    "build": "tsc -w",
+    "dev": "nodemon",
+    "start": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "npx eslint --ext .ts src/",
+    "lint:tests": "npx eslint --ext .ts spec/",
+    "prettier-format": "prettier --write \"{src/**/*.,*}{ts,tsx,json}\""
+  },
+  "nodemonConfig": {
+    "watch": [
+      "src"
+    ],
+    "ext": "ts, html",
+    "ignore": [
+      "src/public"
+    ],
+    "exec": "../../node_modules/.bin/ts-node --files -r tsconfig-paths/register ./src"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/autoload": "^5.6.0",
+    "@fastify/sensible": "^5.1.1",
+    "@fastify/type-provider-typebox": "^2.4.0",
+    "@sinclair/typebox": "^0.25.11",
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1",
+    "command-line-args": "^5.2.1",
+    "date-fns": "^2.29.3",
+    "dotenv": "^16.0.3",
+    "fastify": "^4.10.2",
+    "fastify-plugin": "^4.3.0",
+    "firebase": "^9.14.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/command-line-args": "^5.2.0",
+    "@types/pino": "^7.0.5",
+    "@types/uuid": "^9.0.0"
+  }
+}

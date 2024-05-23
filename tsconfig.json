@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "incremental": true,
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "module": "CommonJS",
+    "target": "es2017",
+    "sourceMap": true,
+    "lib": ["esnext"],
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true
+  },
+  "references": [
+    {
+      "path": "packages/microservices"
+    },
+    {
+      "path": "packages/functions"
+    },
+    {
+      "path": "packages/app"
+    }
+  ],
+  "exclude": ["node_modules", "dist", "*.d.ts"]
+}

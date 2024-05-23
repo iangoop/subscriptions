@@ -8,7 +8,7 @@
   },
   "functions": [
     {
-      "source": "functions",
+      "source": "packages/functions",
       "codebase": "default",
       "ignore": [
         "node_modules",
@@ -24,11 +24,7 @@
   ],
   "hosting": {
     "public": "public",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ]
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
   },
   "storage": {
     "rules": "storage.rules"
