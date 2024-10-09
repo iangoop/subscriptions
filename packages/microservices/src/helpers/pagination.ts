@@ -1,9 +1,26 @@
 import { Static, Type } from '@sinclair/typebox';
-import { query, Query, startAt, limit, getDocs } from 'firebase/firestore';
+import {
+  query,
+  Query,
+  limit,
+  DocumentReference,
+  QueryConstraint,
+  startAfter,
+  QueryOrderByConstraint,
+  orderBy,
+  getDoc,
+  CollectionReference,
+  doc,
+  getDocs,
+  getCountFromServer,
+  QuerySnapshot,
+  startAt,
+  QueryDocumentSnapshot,
+} from 'firebase/firestore';
 
 export const PaginationSchema = Type.Object({
-  page: Type.Integer({ minimum: 1, default: 1 }),
-  itemsPerPage: Type.Integer({ minimum: 0, default: 30 }),
+  cursor: Type.Optional(Type.String()),
+  limit: Type.Integer({ minimum: 0, default: 30 }),
 });
 
 export const PaginationQueryparamSchema = {
@@ -12,26 +29,47 @@ export const PaginationQueryparamSchema = {
 
 export type Pagination = Static<typeof PaginationSchema>;
 
-/**
- * Firestore doesn't support offset pagination, the only supported method is via cursor.
- * For the sake of integration the offset in being mimic in a not efficient way.
- * It should be changed as soon as we have control of the client code
- */
+export type PaginationDb = Omit<Pagination, 'cursor'> & {
+  cursor: DocumentReference | undefined;
+};
+
+export type PaginationQuery<T> = {
+  count: number;
+  next?: string;
+  data: T[];
+};
+
 export const paginate = async <T>(
   unpaginatedQuery: Query<T>,
   pagination: Pagination,
-): Promise<Query<T>> => {
-  const lowerLimit = (pagination.page - 1) * pagination.itemsPerPage + 1;
-  const q = query(unpaginatedQuery, limit(lowerLimit));
-
-  const docs = await getDocs<T>(q);
-
-  if (docs.size && docs.size == lowerLimit) {
-    return query(
-      unpaginatedQuery,
-      startAt(docs.docs[docs.size - 1]),
-      limit(pagination.itemsPerPage),
-    );
+  collectionReference: CollectionReference,
+  processQuery?: (docsSnapshot: Array<QueryDocumentSnapshot<T>>) => T[],
+  ...orderByConstraint: QueryOrderByConstraint[]
+): Promise<PaginationQuery<T>> => {
+  async function exportQuery(query: Query<T>): Promise<PaginationQuery<T>> {
+    const docsSnapshot = await getDocs<T>(query);
+    const snapshot = await getCountFromServer(collectionReference);
+    const docs = docsSnapshot.docs;
+    let cursor = undefined;
+    if (docsSnapshot.size > pagination.limit) {
+      const doc = docs.pop();
+      cursor = doc?.id;
+    }
+    return {
+      count: snapshot.data().count,
+      next: cursor,
+      data: processQuery ? processQuery(docs) : docs.map((doc) => doc.data()),
+    };
   }
-  return Promise.reject();
+
+  let constraints: QueryConstraint[] = [
+    ...(orderByConstraint.length
+      ? orderByConstraint
+      : [orderBy('updated', 'desc')]),
+    ...(pagination.cursor
+      ? [startAt(await getDoc(doc(collectionReference, pagination.cursor)))]
+      : []),
+    limit(pagination.limit + 1),
+  ];
+  return exportQuery(query<T>(unpaginatedQuery, ...constraints));
 };

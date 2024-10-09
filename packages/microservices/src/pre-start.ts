@@ -4,9 +4,9 @@
  * arguments, and cron-jobs.
  */
 
-import path from 'path';
-import dotenv from 'dotenv';
-import commandLineArgs from 'command-line-args';
+import path from "path";
+import dotenv from "dotenv";
+import commandLineArgs from "command-line-args";
 
 // **NOTE** Do not import any local paths here, or any libraries dependent
 // on environment variables.
@@ -15,9 +15,9 @@ import commandLineArgs from 'command-line-args';
 
 const options = commandLineArgs([
   {
-    name: 'env',
-    alias: 'e',
-    defaultValue: 'development',
+    name: "env",
+    alias: "e",
+    defaultValue: "development",
     type: String,
   },
 ]);

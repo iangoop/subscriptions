@@ -21,7 +21,7 @@ const queryFilter = ['id', 'sku', 'configProfile'] as const;
 export type productQueryFilter = ObjectArr<typeof queryFilter>;
 export type productQueryFilterWithPagination = productQueryFilter & Pagination;
 
-async function getAllMatchingDocuments(
+/*async function getAllMatchingDocuments(
   queryFilter: QueryObjectNorm<productQueryFilter>,
 ): Promise<DocumentReference[]> {
   const productList: DocumentReference[] = [];
@@ -61,7 +61,7 @@ async function getAllMatchingDocuments(
         const docs = await getDocs(
           query(
             collection(firestoreInstance, ProductCollection),
-            where('condigProfile', '==', configProfile),
+            where('configProfile', '==', configProfile),
           ),
         );
         if (docs.size && docs.docs[0].exists()) {
@@ -73,13 +73,13 @@ async function getAllMatchingDocuments(
     );
   }
   return productList;
-}
+}*/
 
 class ProductCrud extends Crud<IProduct> {
   constructor() {
     super(ProductCollection, productConverter, productValidator);
   }
-  async getAll(filter: productQueryFilterWithPagination): Promise<IProduct[]> {
+  /*async getAll(filter: productQueryFilterWithPagination): Promise<IProduct[]> {
     const products = await getAllMatchingDocuments(
       normalize<productQueryFilter>(queryFilter, filter),
     );
@@ -89,7 +89,7 @@ class ProductCrud extends Crud<IProduct> {
     }
     constraints.push(orderBy('updated', 'desc'));
     return this.processQuery(constraints, filter);
-  }
+  }*/
 }
 
 export const productService = (): ProductCrud => {

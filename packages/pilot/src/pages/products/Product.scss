@@ -1,0 +1,51 @@
+@import 'bootstrap/scss/functions.scss';
+@import 'bootstrap/scss/variables.scss';
+@import 'bootstrap/scss/mixins.scss';
+
+$left-column-width: 210px;
+
+.product-form {
+  label {
+    small {
+      color: red;
+      padding-left: map-get($spacers, 2);
+    }
+  }
+  .image-column {
+    display: flex;
+    justify-content: center;
+    .image-container {
+      padding: map-get($spacers, 3) 0;
+    }
+  }
+  @include media-breakpoint-up(md) {
+    .image-column,
+    .control-column {
+      float: left;
+      clear: left;
+    }
+    .image-column {
+      .image-container {
+        padding: 0;
+        height: 210px;
+      }
+      img {
+        object-fit: contain;
+        width: 100%;
+      }
+    }
+    .control-column,
+    .image-column {
+      width: $left-column-width;
+    }
+    .description-column {
+      float: right;
+      width: 100%;
+      margin-left: -$left-column-width;
+      padding-left: calc($left-column-width + $spacer);
+    }
+    .action {
+      clear: both;
+    }
+  }
+}

@@ -49,10 +49,10 @@ const products: FastifyPluginAsyncTypebox = async (
   fastify,
   opts,
 ): Promise<void> => {
-  crudRest<IProduct, QueryFilter>(
+  crudRest<IProduct, Pagination>(
     fastify,
     productService(),
-    getAllSchema,
+    PaginationSchema,
     addProductAddressSchema,
   );
 

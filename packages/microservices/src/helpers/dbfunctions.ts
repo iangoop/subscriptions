@@ -20,7 +20,12 @@ import {
   QueryConstraint,
 } from 'firebase/firestore';
 import { InvalidReferenceError } from './errors';
-import { paginate, Pagination } from './pagination';
+import {
+  paginate,
+  Pagination,
+  PaginationDb,
+  PaginationQuery,
+} from './pagination';
 import { IValidator, ValidationError } from './validators';
 
 export type Timestamped = {
@@ -45,7 +50,7 @@ export function setCreated(document: Timestamped) {
 }
 
 export const fromQuery = <T extends Identified>(
-  snapshot: QuerySnapshot<T>,
+  snapshot: Array<QueryDocumentSnapshot<T>>,
 ): T[] => {
   const result: T[] = [];
   snapshot.forEach((doc) => {
@@ -118,40 +123,45 @@ export class Crud<T extends Identified & Timestamped> {
     );
   }
 
+  preparePagination<U extends Pagination>(filter: U): PaginationDb {
+    const cursor = filter.cursor
+      ? doc(firestoreInstance, this.collection, filter.cursor)
+      : undefined;
+    return Object.assign({}, filter, { cursor: cursor }) as PaginationDb;
+  }
+
   async processQuery<U extends Pagination>(
     constraints: QueryConstraint[],
     filter: U,
-  ) {
+  ): Promise<PaginationQuery<T>> {
     try {
-      const q = await paginate(
-        query(
-          collection(firestoreInstance, this.collection),
-          ...constraints,
-        ).withConverter(this.converter),
+      const collectionRef = this.getCollectionRef();
+      return paginate(
+        query(collectionRef, ...constraints).withConverter(this.converter),
         filter,
+        collectionRef,
+        (docsSnapshot: Array<QueryDocumentSnapshot<T>>) => {
+          return fromQuery(docsSnapshot);
+        },
       );
-
-      const docsSnapshot = await getDocs<T>(q);
-      return fromQuery(docsSnapshot);
     } catch (error) {
-      return [];
+      return {} as PaginationQuery<T>;
     }
   }
 
-  async getAll<U extends Pagination>(filter: U): Promise<T[]> {
+  async getAll<U extends Pagination>(filter: U): Promise<PaginationQuery<T>> {
     try {
-      const q = await paginate(
-        query(
-          collection(firestoreInstance, this.collection),
-          orderBy('updated', 'desc'),
-        ).withConverter(this.converter),
+      const collectionRef = this.getCollectionRef();
+      return paginate(
+        query(collectionRef).withConverter(this.converter),
         filter,
+        collectionRef,
+        (docsSnapshot: Array<QueryDocumentSnapshot<T>>) => {
+          return fromQuery(docsSnapshot);
+        },
       );
-
-      const docsSnapshot = await getDocs<T>(q);
-      return fromQuery(docsSnapshot);
     } catch (error) {
-      return [];
+      return {} as PaginationQuery<T>;
     }
   }
 
