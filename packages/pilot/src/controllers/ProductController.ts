@@ -40,7 +40,7 @@ function useProductController(props: Props): Controller {
     },
   });
   const { id } = useParams<ById>();
-  async function fetchProduct(key: String): Promise<Product> {
+  async function fetchProduct(key: string): Promise<Product> {
     const response = await axios.get<Product>(
       EnvVars.apiUrl + '/products/' + key,
       {
@@ -50,7 +50,7 @@ function useProductController(props: Props): Controller {
     return response.data;
   }
 
-  async function patchProduct(key: String, product: Product) {
+  async function patchProduct(key: string, product: Product) {
     const response = await axios.patch<Product>(
       EnvVars.apiUrl + '/products/' + key,
       product,
@@ -118,9 +118,7 @@ function useProductController(props: Props): Controller {
             data: data,
           }));
         })
-        .catch((error) => {
-          console.log(error);
-        });
+        .catch((error) => {});
     }
   }, [id]);
 

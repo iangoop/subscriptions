@@ -1,11 +1,9 @@
-import React, { useEffect } from 'react';
-import { useFormikContext, Formik, Form, Field } from 'formik';
+import { useFormikContext } from 'formik';
 import { Product } from '@mytypes/model';
 import { imagePlaceholder } from 'src/util/Formatters';
 
 function ThumbnailUrl() {
-  const { values, submitForm } = useFormikContext<Product>();
-  const placeholderUrl = 'https://placehold.co/300x300';
+  const { values } = useFormikContext<Product>();
 
   return (
     <div className="image-container">

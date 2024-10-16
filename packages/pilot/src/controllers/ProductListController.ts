@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { CommonState } from './CommonController';
 import { PaginationQuery, Product } from '@mytypes/model';
 import axios from 'axios';

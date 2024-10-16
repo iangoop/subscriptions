@@ -1,4 +1,4 @@
-import { object, string, number, date, InferType } from 'yup';
+import { object, string, number, InferType } from 'yup';
 import { t } from 'i18next';
 
 export type BaseObject = {

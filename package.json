@@ -13,8 +13,9 @@
   "scripts": {
     "dev": "concurrently --kill-others \"npm run dev -w @subscriptions/microservices\" \"npm run dev -w @subscriptions/pilot\"",
     "emulators": "dotenvx run -f env/development.env -f packages/microservices/env/development.env -- firebase emulators:start",
-    "build:pilot": "dotenvx run -f packages/pilot/env/development.env -- npm run build -w @subscriptions/pilot",
-    "build:microservices": "npm run build -w @subscriptions/microservices"
+    "build:pilot": "npm run build -w @subscriptions/pilot",
+    "build:microservices": "npm run build -w @subscriptions/microservices",
+    "build:pilot:dev": "dotenvx run -f packages/pilot/env/development.env -- npm run build -w @subscriptions/pilot"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "^1.5.0",
