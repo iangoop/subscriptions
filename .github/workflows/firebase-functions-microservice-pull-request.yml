@@ -1,0 +1,39 @@
+name: Deploy Microservices to Firebase Function on PR
+on: pull_request
+permissions:
+  checks: write
+  contents: read
+  pull-requests: write
+jobs:
+  build_and_preview:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: 'actions/checkout@v4'
+
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FIR_F51CB }}
+
+      - id: 'build'
+        run: npm ci && npm run build:microservices
+
+      - id: 'env'
+        run: |
+          touch .env
+          echo FIREBASE_APIKEY=${{ secrets.FIREBASE_APIKEY }} >> .env
+          echo FIREBASE_AUTHDOMAIN=${{ vars.FIREBASE_AUTHDOMAIN }} >> .env
+          echo FIREBASE_PROJECTID=${{ vars.FIREBASE_PROJECTID }} >> .env
+          echo FIREBASE_STORAGEBUCKET=${{ vars.FIREBASE_STORAGEBUCKET }} >> .env
+          echo FIREBASE_MESSAGINGSENDERID=${{ vars.FIREBASE_MESSAGINGSENDERID }} >> .env
+          echo FIREBASE_APPID=${{ vars.FIREBASE_APPID }} >> .env
+          echo FIREBASE_MEASUREMENTID=${{ vars.FIREBASE_MEASUREMENTID }} >> .env
+          cat .env
+
+      - id: 'deploy'
+        uses: 'google-github-actions/deploy-cloud-functions@v2'
+        with:
+          name: 'app'
+          runtime: 'nodejs20'
