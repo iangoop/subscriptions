@@ -22,4 +22,9 @@ server.setErrorHandler((error, request, reply) => {
   writeErrorsToResponse(error, reply);
 });
 
+server.addContentTypeParser('application/json', {}, (req, payload, done) => {
+  const transformed = (payload as any).body;
+  done(null, transformed);
+});
+
 export default server;

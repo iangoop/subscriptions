@@ -24,6 +24,7 @@
   },
   "scripts": {
     "dev": "dotenvx run -f env/development.env -- craco start",
+    "dev:build": "dotenvx run -f env/development.env -- craco build",
     "start": "craco start",
     "build": "craco build",
     "test": "craco test",

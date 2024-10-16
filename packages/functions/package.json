@@ -13,7 +13,7 @@
     "--prepare": "cd .. && husky install functions/.husky"
   },
   "engines": {
-    "node": "22"
+    "node": "20"
   },
   "main": "lib/index.js",
   "dependencies": {

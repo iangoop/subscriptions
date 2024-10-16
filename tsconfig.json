@@ -18,9 +18,6 @@
       "path": "packages/functions"
     },
     {
-      "path": "packages/app"
-    },
-    {
       "path": "packages/pilot"
     }
   ],

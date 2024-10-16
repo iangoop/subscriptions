@@ -10,11 +10,18 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "scripts": {
+    "dev": "concurrently --kill-others \"npm run dev -w @subscriptions/microservices\" \"npm run dev -w @subscriptions/pilot\"",
+    "emulators": "dotenvx run -f env/development.env -f packages/microservices/env/development.env -- firebase emulators:start",
+    "build:pilot": "dotenvx run -f packages/pilot/env/development.env -- npm run build -w @subscriptions/pilot",
+    "build:microservices": "npm run build -w @subscriptions/microservices"
+  },
   "devDependencies": {
     "@dotenvx/dotenvx": "^1.5.0",
     "@types/node": "^20.11.5",
     "@typescript-eslint/eslint-plugin": "^6.19.1",
     "@typescript-eslint/parser": "^6.19.1",
+    "concurrently": "^9.0.1",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-config-standard": "^17.1.0",
@@ -27,6 +34,7 @@
     "nodemon": "^2.0.20",
     "prettier": "^3.2.4",
     "ts-node": "^10.9.1",
+    "tsc-alias": "^1.8.10",
     "tsconfig-paths": "^4.1.0",
     "typescript": "^5.3.3"
   }

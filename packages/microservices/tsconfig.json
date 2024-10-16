@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "rootDir": ".",
-    "outDir": "dist",
+    "outDir": "lib",
     "baseUrl": ".",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -20,5 +20,5 @@
     "spec/**/*.ts"
     //"build.ts"
   ],
-  "exclude": ["src/public/", "node_modules", "dist"]
+  "exclude": ["src/public/", "node_modules", "lib"]
 }
