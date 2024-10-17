@@ -37,8 +37,8 @@ jobs:
 
       - name: Copy .env to functions folders
         run: |
-          cp .env /packages/functions
-          cp .env /packages/microservices
+          cp .env packages/functions
+          cp .env packages/microservices
 
       - name: Deploy to Firebase
         env:
