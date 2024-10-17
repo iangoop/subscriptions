@@ -63,6 +63,8 @@ node_modules/
 .yarn-integrity
 
 # dotenv environment variables file
+.secrets
+.vars
 .env
 env/*
 !env/base.env
