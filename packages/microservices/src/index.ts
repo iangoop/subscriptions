@@ -1,9 +1,6 @@
 import * as express from 'express';
-import EnvVars from '@src/configurations/EnvVars';
 import server from './server';
 import { onRequest } from 'firebase-functions/https';
-
-//server.listen({ port: Number(EnvVars.port) });
 
 const fastifyApp = async (
   request: express.Request,
@@ -13,4 +10,4 @@ const fastifyApp = async (
   server.server.emit('request', request, reply);
 };
 
-exports.app = onRequest(fastifyApp);
+export const app = onRequest(fastifyApp);

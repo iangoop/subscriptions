@@ -3,6 +3,7 @@ import AutoLoad from '@fastify/autoload';
 import { fastify } from 'fastify';
 import pino from 'pino';
 import { writeErrorsToResponse } from './helpers/routes';
+import { Request } from 'express';
 const server = fastify({
   logger: pino({ level: 'info' }),
 });
@@ -23,8 +24,8 @@ server.setErrorHandler((error, request, reply) => {
 });
 
 server.addContentTypeParser('application/json', {}, (req, payload, done) => {
-  const transformed = (payload as any).body;
-  done(null, transformed);
+  const response: Request = payload as Request;
+  done(null, response.body);
 });
 
 export default server;

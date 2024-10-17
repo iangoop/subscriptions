@@ -3,7 +3,7 @@ import * as admin from 'firebase-admin';
 
 export const onDeleteArchive = functions.firestore
   .document('/customers/{documentId}')
-  .onDelete((snap, context) => {
+  .onDelete((snap) => {
     return admin
       .firestore()
       .collection('customersDeleted')

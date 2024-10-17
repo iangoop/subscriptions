@@ -13,11 +13,11 @@ import {
   orderBy,
   DocumentReference,
 } from 'firebase/firestore';
-import { fromQuery, Crud } from '@src/helpers/dbfunctions';
+import { Crud } from '@src/helpers/dbfunctions';
 
 import { InvalidReferenceError } from '@src/helpers/errors';
 import { customerAddressConverter } from './converters/CustomerAddressConverter';
-import { Pagination, PaginationQuery, paginate } from '@src/helpers/pagination';
+import { Pagination, PaginationQuery } from '@src/helpers/pagination';
 import { CustomerCollection } from '@src/models/Customer';
 import { customerAddressValidator } from './validators/CustomerAddressValidator';
 import { normalize, ObjectArr, QueryObjectNorm } from '@src/helpers/filters';

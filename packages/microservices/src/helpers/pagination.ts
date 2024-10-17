@@ -5,7 +5,6 @@ import {
   limit,
   DocumentReference,
   QueryConstraint,
-  startAfter,
   QueryOrderByConstraint,
   orderBy,
   getDoc,
@@ -13,7 +12,6 @@ import {
   doc,
   getDocs,
   getCountFromServer,
-  QuerySnapshot,
   startAt,
   QueryDocumentSnapshot,
 } from 'firebase/firestore';
@@ -62,7 +60,7 @@ export const paginate = async <T>(
     };
   }
 
-  let constraints: QueryConstraint[] = [
+  const constraints: QueryConstraint[] = [
     ...(orderByConstraint.length
       ? orderByConstraint
       : [orderBy('updated', 'desc')]),

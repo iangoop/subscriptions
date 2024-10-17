@@ -19,6 +19,7 @@ const files = glob.sync('./**/*.f.js', {
   cwd: __dirname,
   ignore: './node_modules/**',
 });
+/* eslint-disable node/no-process-env */
 for (let f = 0, fl = files.length; f < fl; f++) {
   const file = files[f];
   const functionName = _.camelCase(file.slice(0, -5).split('/').join('_'));
@@ -32,13 +33,6 @@ for (let f = 0, fl = files.length; f < fl; f++) {
   }
 }
 
-export const migrate = functions.https.onCall((data, context) => {
-  console.log('testeee');
-  functions.logger.log('testeee');
+export const migrate = functions.https.onCall(() => {
   return Promise.all([exportProduct()]);
-});
-
-export const test = functions.https.onCall((data, context) => {
-  console.log('hereee');
-  return { test: 'trye' };
 });

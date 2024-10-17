@@ -1,7 +1,6 @@
 import { firestoreInstance } from '@src/configurations/firebase';
 import { format } from 'date-fns';
 import {
-  QuerySnapshot,
   DocumentSnapshot,
   doc,
   getDoc,
@@ -11,8 +10,6 @@ import {
   QueryDocumentSnapshot,
   query,
   collection,
-  orderBy,
-  getDocs,
   addDoc,
   updateDoc,
   UpdateData,
