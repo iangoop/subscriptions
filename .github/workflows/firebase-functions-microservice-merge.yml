@@ -26,19 +26,20 @@ jobs:
       - name: 'Set env vars'
         run: |
           touch .env
-          echo FIREBASE_APIKEY=${{ secrets.FIREBASE_APIKEY }} >> .env
-          echo FIREBASE_AUTHDOMAIN=${{ vars.FIREBASE_AUTHDOMAIN }} >> .env
-          echo FIREBASE_PROJECTID=${{ vars.FIREBASE_PROJECTID }} >> .env
-          echo FIREBASE_STORAGEBUCKET=${{ vars.FIREBASE_STORAGEBUCKET }} >> .env
-          echo FIREBASE_MESSAGINGSENDERID=${{ vars.FIREBASE_MESSAGINGSENDERID }} >> .env
-          echo FIREBASE_APPID=${{ vars.FIREBASE_APPID }} >> .env
-          echo FIREBASE_MEASUREMENTID=${{ vars.FIREBASE_MEASUREMENTID }} >> .env
+          echo CUSTOM_FIREBASE_APIKEY=${{ secrets.FIREBASE_APIKEY }} >> .env
+          echo CUSTOM_FIREBASE_AUTHDOMAIN=${{ vars.FIREBASE_AUTHDOMAIN }} >> .env
+          echo CUSTOM_FIREBASE_PROJECTID=${{ vars.FIREBASE_PROJECTID }} >> .env
+          echo CUSTOM_FIREBASE_STORAGEBUCKET=${{ vars.FIREBASE_STORAGEBUCKET }} >> .env
+          echo CUSTOM_FIREBASE_MESSAGINGSENDERID=${{ vars.FIREBASE_MESSAGINGSENDERID }} >> .env
+          echo CUSTOM_FIREBASE_APPID=${{ vars.FIREBASE_APPID }} >> .env
+          echo CUSTOM_FIREBASE_MEASUREMENTID=${{ vars.FIREBASE_MEASUREMENTID }} >> .env
           cat .env
 
-      - name: Copy .env to functions folders
+      - name: Move .env to functions folders
         run: |
           cp .env packages/functions
           cp .env packages/microservices
+          rm .env
 
       - name: Deploy to Firebase
         env:
