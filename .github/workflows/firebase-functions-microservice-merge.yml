@@ -35,6 +35,11 @@ jobs:
           echo FIREBASE_MEASUREMENTID=${{ vars.FIREBASE_MEASUREMENTID }} >> .env
           cat .env
 
+      - name: Copy .env to functions folders
+        run: |
+          cp .env /packages/functions
+          cp .env /packages/microservices
+
       - name: Deploy to Firebase
         env:
           GOOGLE_APPLICATION_CREDENTIALS: gcloud.json
