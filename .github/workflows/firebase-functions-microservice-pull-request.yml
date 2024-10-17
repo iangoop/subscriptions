@@ -12,6 +12,9 @@ jobs:
     steps:
       - uses: 'actions/checkout@v4'
 
+      - name: Create SA key
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > gcloud.json
+
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
@@ -23,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: 'Setting env vars'
+      - name: 'Set env vars'
         run: |
           touch .env
           echo FIREBASE_APIKEY=${{ secrets.FIREBASE_APIKEY }} >> .env
@@ -37,5 +40,5 @@ jobs:
 
       - name: Deploy to Firebase
         env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          GOOGLE_APPLICATION_CREDENTIALS: gcloud.json
         run: firebase deploy --only functions
