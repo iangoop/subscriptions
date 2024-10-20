@@ -5,7 +5,7 @@ import { QueryDocumentSnapshot } from 'firebase-functions/v1/firestore';
 
 export const exportProduct = async () => {
   const productPath = fs.readFileSync(
-    path.join(__dirname, '../../../../../database/products.json'),
+    path.join(__dirname, '../../../../../../database/products.json'),
   );
   const products: Record<string, string>[] = JSON.parse(
     productPath.toString(),

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { CommonState } from './CommonController';
+import { FormState } from './CommonController';
 import { Product, ProductSchema } from '@mytypes/model';
 import axios from 'axios';
 import EnvVars from 'src/util/EnvVars';
@@ -9,7 +9,7 @@ import { FormikHelpers } from 'formik';
 import { ObjectSchema } from 'yup';
 
 export interface Props {}
-interface State extends CommonState {
+interface State extends FormState {
   data: Product;
   showConfirmation: boolean;
 }
@@ -27,6 +27,7 @@ interface Controller {
 function useProductController(props: Props): Controller {
   const [state, setState] = React.useState<State>({
     isLoading: false,
+    isSubmiting: false,
     showConfirmation: false,
     data: {
       id: '',
@@ -76,11 +77,13 @@ function useProductController(props: Props): Controller {
     values: Product,
     { resetForm }: FormikHelpers<Product>,
   ) {
+    setState((state) => ({ ...state, isSubmiting: true }));
     if (id && id !== CREATE) {
       const data = await patchProduct(id, values);
       setState((state) => ({
         ...state,
         data: data,
+        isSubmiting: false,
         showConfirmation: true,
       }));
     } else {
@@ -88,6 +91,7 @@ function useProductController(props: Props): Controller {
       setState((state) => ({
         ...state,
         data: data,
+        isSubmiting: false,
         showConfirmation: true,
       }));
     }
@@ -119,6 +123,11 @@ function useProductController(props: Props): Controller {
           }));
         })
         .catch((error) => {});
+    } else {
+      setState((state) => ({
+        ...state,
+        isLoading: false,
+      }));
     }
   }, [id]);
 

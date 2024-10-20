@@ -22,7 +22,9 @@ const ProductView: React.FC<Props> = (props) => {
           onSubmit={controller.onSubmit}
           validateOnBlur={true}
         >
-          <Form className="product-form">
+          <Form
+            className={`product-form skeleton ${controller.state.isLoading ? 'form-loading' : ''}`}
+          >
             <div className="image-column">
               <ThumbnailUrl />
             </div>
@@ -33,6 +35,7 @@ const ProductView: React.FC<Props> = (props) => {
                   <ErrorMessage name="thumbnailUrl" component="small" />
                 </label>
                 <Field
+                  disabled={controller.state.isLoading}
                   className="input-control form-control"
                   type="text"
                   name="thumbnailUrl"
@@ -45,6 +48,7 @@ const ProductView: React.FC<Props> = (props) => {
                   <ErrorMessage name="name" component="small" />
                 </label>
                 <Field
+                  disabled={controller.state.isLoading}
                   className="input-control form-control"
                   type="text"
                   name="name"
@@ -57,6 +61,7 @@ const ProductView: React.FC<Props> = (props) => {
                   <ErrorMessage name="sku" component="small" />
                 </label>
                 <Field
+                  disabled={controller.state.isLoading}
                   className="input-control form-control"
                   type="text"
                   name="sku"
@@ -69,6 +74,7 @@ const ProductView: React.FC<Props> = (props) => {
                   <ErrorMessage name="shortDescription" component="small" />
                 </label>
                 <Field
+                  disabled={controller.state.isLoading}
                   className="input-control form-control"
                   type="text"
                   name="shortDescription"
@@ -81,6 +87,7 @@ const ProductView: React.FC<Props> = (props) => {
                   <ErrorMessage name="longDescription" component="small" />
                 </label>
                 <Field
+                  disabled={controller.state.isLoading}
                   className="input-control form-control"
                   type="text"
                   name="longDescription"
@@ -95,6 +102,7 @@ const ProductView: React.FC<Props> = (props) => {
                   <ErrorMessage name="price" component="small" />
                 </label>
                 <Field
+                  disabled={controller.state.isLoading}
                   className="input-control form-control"
                   type="text"
                   name="price"
@@ -107,6 +115,7 @@ const ProductView: React.FC<Props> = (props) => {
                   <ErrorMessage name="qtyInStock" component="small" />
                 </label>
                 <Field
+                  disabled={controller.state.isLoading}
                   className="input-control form-control"
                   type="text"
                   name="qtyInStock"
@@ -115,7 +124,16 @@ const ProductView: React.FC<Props> = (props) => {
               </div>
             </div>
             <div className="action">
-              <Button type="submit">{t('general.submit')}</Button>
+              <Button type="submit">
+                <span
+                  className={`spinner-border spinner-border-sm ${controller.state.isSubmiting ? '' : 'd-none'}`}
+                ></span>
+                <span className="sr-only">
+                  {controller.state.isSubmiting
+                    ? t('general.submiting')
+                    : t('general.submit')}
+                </span>
+              </Button>
             </div>
           </Form>
         </Formik>
@@ -135,6 +153,7 @@ const ProductView: React.FC<Props> = (props) => {
           <Button
             variant="primary"
             onClick={controller.handleConfirmationClose}
+            disabled={controller.state.isLoading}
           >
             {t('general.close')}
           </Button>

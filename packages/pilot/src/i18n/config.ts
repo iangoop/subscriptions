@@ -70,11 +70,13 @@ export default i18n
           },
           general: {
             submit: 'Submit',
+            submiting: 'Sending...',
             required: 'This field is required',
             confirmationTitle: 'Success! Your Work is Saved',
             confirmationNext: 'Click close to continue...',
             close: 'Close',
             currency: '£',
+            loading: 'Loading...',
             loadMore: 'Show more results',
             addNew: 'Add',
           },

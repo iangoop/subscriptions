@@ -1,0 +1,36 @@
+@import 'bootstrap/scss/functions.scss';
+@import 'bootstrap/scss/variables.scss';
+@import 'bootstrap/scss/mixins.scss';
+
+.skeleton {
+  .loading {
+    animation: pulse 2s infinite;
+
+    span {
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      word-break: break-word;
+      visibility: hidden;
+    }
+  }
+  &.form-loading {
+    input:disabled {
+      color: $gray-500;
+      animation: pulse 2s infinite;
+    }
+  }
+}
+
+@keyframes pulse {
+  0% {
+    background-color: $gray-200;
+  }
+
+  50% {
+    background-color: $gray-300;
+  }
+
+  100% {
+    background-color: $gray-200;
+  }
+}
