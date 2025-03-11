@@ -1,66 +1,107 @@
-import { TSchema } from '@sinclair/typebox';
+import { Static, TSchema, Type } from '@sinclair/typebox';
 import { FastifyInstance, FastifyReply } from 'fastify';
 import { Crud, Identified, Timestamped } from './dbfunctions';
 import { InvalidReferenceError } from './errors';
-import { Pagination } from './pagination';
+import { Pagination, PaginationSchema } from './pagination';
 import { ValidationError } from './validators';
+
+export type ConvertQueryString<T, K> = (param: T) => K;
+
+export const defaultConvertQueryString = <T, K>(param: T): K => {
+  return param as unknown as K;
+};
+
+export const defaultQueryParamSchema = Type.Object(
+  {},
+  { additionalProperties: false },
+);
+export type defaultQueryParam = Static<typeof defaultQueryParamSchema>;
 
 export const crudRest = <
   T extends Identified & Timestamped,
-  QueryStringGetAll extends Pagination,
+  QueryParamGetAll extends Pagination = Pagination,
+  CustomQueryParam = defaultQueryParam,
+  ConvertedQueryString = defaultQueryParam,
 >(
   fastify: FastifyInstance,
   service: Crud<T>,
-  getAllSchema: TSchema,
   postSchema: TSchema,
   patchSchema: TSchema = postSchema,
+  getAllQueryParamSchema: TSchema = PaginationSchema,
+  queryParamSchema: TSchema = defaultQueryParamSchema,
+  convertQueryParam: ConvertQueryString<
+    CustomQueryParam,
+    ConvertedQueryString
+  > = defaultConvertQueryString,
 ) => {
-  fastify.get<{ Querystring: QueryStringGetAll }>(
+  fastify.get<{ Querystring: QueryParamGetAll }>(
     '/',
-    { schema: { querystring: getAllSchema } },
+    { schema: { querystring: getAllQueryParamSchema } },
     async function (request, reply) {
-      return await service.getAll(request.query as QueryStringGetAll);
+      return await service.getAll(request.query as QueryParamGetAll);
     },
   );
 
-  fastify.get<{ Params: IdGetParam }>('/:id', async function (request, reply) {
-    const { id } = request.params;
+  fastify.get<{ Querystring: CustomQueryParam }>(
+    '/:id',
+    { schema: { querystring: queryParamSchema } },
+    async function (request, reply) {
+      return await service.getById(
+        Object.assign(
+          {},
+          request.params,
+          convertQueryParam(request.query as CustomQueryParam),
+        ) as Identified & ConvertedQueryString,
+      );
+    },
+  );
 
-    return await service.getById(id);
-  });
-
-  fastify.post<{ Body: T }>(
+  fastify.post<{ Querystring: CustomQueryParam; Body: T }>(
     '/',
     { schema: { body: postSchema } },
     async function (request, reply) {
-      return await service.create(request.body as T);
+      return await service.create(
+        Object.assign(
+          {},
+          convertQueryParam(request.query as CustomQueryParam),
+          request.body,
+        ) as T,
+      );
     },
   );
 
-  fastify.patch<{ Params: IdGetParam; Body: T }>(
+  fastify.patch<{ Querystring: CustomQueryParam; Params: Identified; Body: T }>(
     '/:id',
-    { schema: { body: patchSchema } },
+    { schema: { body: patchSchema, querystring: queryParamSchema } },
     async function (request, reply) {
       const { id } = request.params;
 
-      return await service.update(id, request.body as T);
+      return await service.update(
+        id,
+        Object.assign(
+          {},
+          convertQueryParam(request.query as CustomQueryParam),
+          request.body,
+        ) as T,
+      );
     },
   );
 
-  fastify.delete<{ Params: IdGetParam }>(
+  fastify.delete<{ Querystring: CustomQueryParam; Params: Identified }>(
     '/:id',
+    { schema: { querystring: queryParamSchema } },
     async function (request, reply) {
-      const { id } = request.params;
-
-      await service.delete(id);
+      await service.delete(
+        Object.assign(
+          {},
+          request.params,
+          convertQueryParam(request.query as CustomQueryParam),
+        ),
+      );
       return reply.code(204).send();
     },
   );
 };
-
-export interface IdGetParam {
-  id: string;
-}
 
 export const writeErrorsToResponse = (
   exception: unknown,

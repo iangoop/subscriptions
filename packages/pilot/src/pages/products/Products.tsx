@@ -22,9 +22,9 @@ const ProductsView: React.FC<Props> = (props) => {
   };
 
   return (
-    <div className="panel-body">
+    <div className="products-page panel-body">
       <div className="title">
-        <h1>Products</h1>
+        <h1>{t('product.listPageTitle')}</h1>
         <Button href={`/products/${CREATE}`}>
           {t('general.addNew')} {t('product.instance')}
         </Button>

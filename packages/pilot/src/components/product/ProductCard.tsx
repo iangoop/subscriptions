@@ -11,7 +11,7 @@ const ProductCard: React.FC<{ product: Product | Empty }> = (props) => {
   if (props.product.id) {
     const { t } = useTranslation();
     return (
-      <li className="product-row">
+      <li className="item-row">
         <Link to={`/products/${props.product.id}`}>
           <div className="image-container">
             <img src={props.product.thumbnailUrl} />
@@ -32,7 +32,7 @@ const ProductCard: React.FC<{ product: Product | Empty }> = (props) => {
     );
   } else {
     return (
-      <li className="product-row skeleton">
+      <li className="item-row skeleton">
         <a>
           <div className="image-container">
             <div className="img loading"></div>

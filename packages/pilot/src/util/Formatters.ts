@@ -4,5 +4,11 @@ export function formatCurrency(num: number) {
     currency: 'GBP',
   }).format(num);
 }
+export function sanitizeNames(firstName: string, lastName: string) {
+  const sanitizedFirstName = encodeURIComponent(firstName.split(' ')[0]);
+  const sanitizedLastName = encodeURIComponent(lastName.split(' ')[0]);
 
-export const imagePlaceholder = 'https://placehold.co/300x300';
+  return sanitizedLastName.length
+    ? `${sanitizedFirstName}+${sanitizedLastName}`
+    : sanitizedLastName;
+}

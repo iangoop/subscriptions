@@ -1,7 +1,9 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+
 import './App.scss';
 import './components/Skeleton.scss';
+import 'react-sliding-pane/dist/react-sliding-pane.css';
 import { Products, Product, Customers, Customer, Layout, Home } from './pages';
 
 function App() {
@@ -13,6 +15,7 @@ function App() {
           <Route path="customers/">
             <Route index element={<Customers />} />
             <Route path=":id" element={<Customer />} />
+            <Route path=":id/address/:addressId" element={<Customer />} />
           </Route>
           <Route path="products/">
             <Route index element={<Products />} />

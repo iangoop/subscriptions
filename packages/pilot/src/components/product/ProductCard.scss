@@ -1,43 +1,16 @@
 @import 'bootstrap/scss/functions.scss';
 @import 'bootstrap/scss/variables.scss';
 @import 'bootstrap/scss/mixins.scss';
+@import '../mixins.scss';
 
-.product-row {
-  a {
-    display: flex;
-    color: $dark;
-    text-decoration: none;
-    background: $light;
-    border-radius: 8px;
-    border: 1px solid $dark;
-    .image-container {
-      min-width: 100px;
-      max-width: 100px;
-      height: 100px;
-    }
-    img,
-    .img {
-      border-radius: 8px 0 0 8px;
-      width: 100%;
-      height: 100%;
-    }
-    .card-details {
-      flex-grow: 1;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      margin: 0 map-get($spacers, 3);
-      .product-name {
-        padding-top: map-get($spacers, 2);
-        width: 100%;
-      }
-    }
-  }
-  &.skeleton {
+.products-page {
+  .item-row {
     a {
-      border-color: $light;
-      .img {
-        background-color: $light;
+      @include item-card;
+      .card-details {
+        .product-name {
+          width: 100%;
+        }
       }
     }
   }

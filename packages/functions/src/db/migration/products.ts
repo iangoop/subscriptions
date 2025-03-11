@@ -1,17 +1,9 @@
-import path from 'path';
-import * as fs from 'fs';
 import * as admin from 'firebase-admin';
 import { QueryDocumentSnapshot } from 'firebase-functions/v1/firestore';
 
-export const exportProduct = async () => {
-  const productPath = fs.readFileSync(
-    path.join(__dirname, '../../../../../../database/products.json'),
-  );
-  const products: Record<string, string>[] = JSON.parse(
-    productPath.toString(),
-  ) as Record<string, string>[];
+export const exportProduct = async (data: Record<string, string>[]) => {
   await Promise.all(
-    products.map(async (product) => {
+    data.map(async (product) => {
       const querySnapshot = await admin
         .firestore()
         .collection('products')

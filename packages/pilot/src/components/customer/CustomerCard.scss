@@ -1,0 +1,33 @@
+@import 'bootstrap/scss/functions.scss';
+@import 'bootstrap/scss/variables.scss';
+@import 'bootstrap/scss/mixins.scss';
+@import '../mixins.scss';
+
+.item-row.customer-card {
+  a {
+    @include item-card;
+    .image-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      img,
+      .img {
+        width: 70%;
+        height: 70%;
+        vertical-align: middle;
+        border-radius: 50%;
+      }
+    }
+    .card-details {
+      .customer-name {
+        margin-top: map-get($spacers, 3);
+      }
+    }
+
+    .card-details {
+      .customer-email {
+        width: 100%;
+      }
+    }
+  }
+}

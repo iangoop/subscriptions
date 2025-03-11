@@ -9,7 +9,6 @@ import { crudRest } from '@src/helpers/routes';
 import { Pagination, PaginationSchema } from '@src/helpers/pagination';
 
 const addCustomerAddressSchema = Type.Pick(CustomerAddressSchema, [
-  'customerId',
   'firstName',
   'middleName',
   'lastName',
@@ -22,20 +21,20 @@ const addCustomerAddressSchema = Type.Pick(CustomerAddressSchema, [
   'postcode',
   'country',
   'phone',
+  'isDefault',
+  'isDefaultBilling',
+  'isDefaultShipping',
 ]);
 
 const getAllParamSchema = Type.Union([
   Type.Object({
-    id: Type.Union([Type.String(), Type.Array(Type.String())]),
+    customerId: Type.String(),
   }),
   Type.Object({
-    platformSpecificCustomerId: Type.Union([
-      Type.String(),
-      Type.Array(Type.String()),
-    ]),
+    platformCustomerId: Type.String(),
   }),
   Type.Object({
-    email: Type.Union([Type.String(), Type.Array(Type.String())]),
+    email: Type.String(),
   }),
 ]);
 
@@ -43,15 +42,37 @@ const getAllSchema = { ...PaginationSchema, ...getAllParamSchema };
 
 type QueryFilter = Static<typeof getAllParamSchema> & Pagination;
 
+const customerDependencyParamSchema = Type.Object({
+  customerId: Type.String(),
+});
+
+type CustomerIdQueryString = Static<typeof customerDependencyParamSchema>;
+
+const convertQueryString = (
+  param: CustomerIdQueryString,
+): Pick<ICustomerAddress, 'customerId'> => {
+  return {
+    customerId: param.customerId,
+  };
+};
+
 const customerAddressess: FastifyPluginAsyncTypebox = async (
   fastify,
   opts,
 ): Promise<void> => {
-  crudRest<ICustomerAddress, QueryFilter>(
+  crudRest<
+    ICustomerAddress,
+    QueryFilter,
+    CustomerIdQueryString,
+    Pick<ICustomerAddress, 'customerId'>
+  >(
     fastify,
     customerAddressService(),
-    getAllSchema,
     addCustomerAddressSchema,
+    addCustomerAddressSchema,
+    getAllSchema,
+    customerDependencyParamSchema,
+    convertQueryString,
   );
 
   return Promise.resolve();

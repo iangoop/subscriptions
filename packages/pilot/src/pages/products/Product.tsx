@@ -14,7 +14,7 @@ const ProductView: React.FC<Props> = (props) => {
   return (
     <>
       <div className="panel-body">
-        <h1>{t('product.productPageTitle')}</h1>
+        <h1>{t('product.editPageTitle')}</h1>
         <Formik
           enableReinitialize={true}
           initialValues={controller.state.data}

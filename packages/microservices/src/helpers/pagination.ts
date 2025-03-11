@@ -46,7 +46,7 @@ export const paginate = async <T>(
 ): Promise<PaginationQuery<T>> => {
   async function exportQuery(query: Query<T>): Promise<PaginationQuery<T>> {
     const docsSnapshot = await getDocs<T>(query);
-    const snapshot = await getCountFromServer(collectionReference);
+    const snapshot = await getCountFromServer(unpaginatedQuery);
     const docs = docsSnapshot.docs;
     let cursor = undefined;
     if (docsSnapshot.size > pagination.limit) {

@@ -11,16 +11,7 @@ import {
   CustomerSchema,
   ICustomer,
 } from '@src/models/Customer';
-import { CustomerAddressCollection } from '@src/models/CustomerAddress';
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-} from 'firebase/firestore';
-import { customerAddressConverter } from '../converters/CustomerAddressConverter';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { customerConverter } from '../converters/CustomerConverter';
 
 async function getDocSnapshotByEmail(customer: ICustomer) {
@@ -30,49 +21,6 @@ async function getDocSnapshotByEmail(customer: ICustomer) {
   ).withConverter(customerConverter);
 
   return getDocs<ICustomer>(q);
-}
-
-async function validateAddress(
-  customer: ICustomer,
-  field: string,
-  err: string[],
-): Promise<boolean> {
-  const key = field as keyof typeof customer;
-  if (!customer[key]) {
-    throw new Error('No value for field ' + field);
-  }
-  const addressId = customer[key] as string;
-  const docSnapshot = await getDoc(
-    doc(firestoreInstance, CustomerAddressCollection, addressId).withConverter(
-      customerAddressConverter,
-    ),
-  );
-  if (!docSnapshot.exists()) {
-    err.push('No Address found with id ' + addressId + ' for property ' + key);
-    return false;
-  }
-  if (docSnapshot.data().customerId != customer.id) {
-    err.push(
-      'Address in property ' + key + ' can not be linked to the customer',
-    );
-    return false;
-  }
-  return true;
-}
-
-async function validateAddresses(
-  customer: ICustomer,
-  err: string[],
-): Promise<void> {
-  if (customer.defaultAddressId) {
-    await validateAddress(customer, 'defaultAddressId', err);
-  }
-  if (customer.defaultBillingAddressId) {
-    await validateAddress(customer, 'defaultBillingAddressId', err);
-  }
-  if (customer.defaultShippingAddressId) {
-    await validateAddress(customer, 'defaultShippingAddressId', err);
-  }
 }
 
 async function validateEmail(
@@ -98,9 +46,12 @@ export const customerValidator: IValidator<ICustomer> = {
   async validate(id: string, model: ICustomer): Promise<IValidation> {
     const err: string[] = this.core.verify(model);
 
-    await validateDoc(id, CustomerCollection);
+    try {
+      await validateDoc(id, CustomerCollection);
+    } catch (error) {
+      err.push(error as string);
+    }
     await validateEmail(model, err, id);
-    await validateAddresses(model, err);
 
     return processErrors(err);
   },
@@ -111,7 +62,6 @@ export const customerValidator: IValidator<ICustomer> = {
       err.push('Customer already associated with a doc');
     } else {
       await validateEmail(model, err);
-      await validateAddresses(model, err);
     }
     return processErrors(err);
   },

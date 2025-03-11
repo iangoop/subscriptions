@@ -1,0 +1,18 @@
+@import 'bootstrap/scss/functions.scss';
+@import 'bootstrap/scss/variables.scss';
+@import 'bootstrap/scss/mixins.scss';
+@import '../mixins.scss';
+
+.item-row.customer-address-card {
+  @include form-card;
+  .content {
+    .address-text {
+      span {
+        display: block;
+      }
+    }
+    .tags {
+      border-bottom: none;
+    }
+  }
+}

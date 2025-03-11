@@ -1,13 +1,19 @@
 import { useFormikContext } from 'formik';
 import { Product } from '@mytypes/model';
-import { imagePlaceholder } from 'src/util/Formatters';
+import EnvVars from 'src/util/EnvVars';
 
 function ThumbnailUrl() {
   const { values } = useFormikContext<Product>();
 
   return (
     <div className="image-container">
-      <img src={values.thumbnailUrl ? values.thumbnailUrl : imagePlaceholder} />
+      <img
+        src={
+          values.thumbnailUrl
+            ? values.thumbnailUrl
+            : `${EnvVars.imagePlaceholder}300x300`
+        }
+      />
     </div>
   );
 }

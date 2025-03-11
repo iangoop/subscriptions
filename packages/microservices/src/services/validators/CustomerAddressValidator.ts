@@ -1,5 +1,5 @@
 import { firestoreInstance } from '@src/configurations/firebase';
-import { validateDoc } from '@src/helpers/dbfunctions';
+import { validateDocInSubcollection } from '@src/helpers/dbfunctions';
 import {
   IValidation,
   IValidator,
@@ -30,14 +30,25 @@ async function validateCustomer(
       "Can't find customer with id " + customerAddress.customerId.toString(),
     );
   }
+  return customer;
 }
 
 export const customerAddressValidator: IValidator<ICustomerAddress> = {
   core: validatorFactory<ICustomerAddress>(CustomerAddressSchema),
   async validate(id: string, model: ICustomerAddress): Promise<IValidation> {
     const err: string[] = this.core.verify(model);
-    await validateDoc(id, CustomerAddressCollection);
-    await validateCustomer(model, err);
+    if ((await validateCustomer(model, err)).exists()) {
+      try {
+        await validateDocInSubcollection(
+          id,
+          CustomerAddressCollection,
+          model.customerId,
+          CustomerCollection,
+        );
+      } catch (error) {
+        err.push(error as string);
+      }
+    }
 
     return processErrors(err);
   },
