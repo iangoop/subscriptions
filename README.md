@@ -18,4 +18,6 @@ Test GitHub actions locally
       - .vars file is not loaded automatically by act, add argument `--var-file .vars` to the act shell command
 4. Testing workflows
     - Check [this article](https://www.freecodecamp.org/news/how-to-run-github-actions-locally/) for different use cases
-    - Example for testing only the job build_and_deploy_functions: `act --job build_and_deploy_functions --var-file .vars`
+    - Example for testing only the job build_and_deploy_functions: 
+        - `act --job build_and_deploy_functions --var-file .vars`
+        - `act --job build_and_deploy --var-file .vars --secret-file .secrets`
