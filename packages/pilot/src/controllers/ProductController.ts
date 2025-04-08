@@ -27,7 +27,9 @@ interface Controller {
 function useProductController(props: Props): Controller {
   const [state, setState] = React.useState<State>({
     isLoading: false,
+    invalidate: true,
     isSubmiting: false,
+    isProcessingRequest: false,
     showConfirmation: false,
     data: {
       id: '',

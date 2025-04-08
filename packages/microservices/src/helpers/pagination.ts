@@ -45,7 +45,7 @@ export const paginate = async <T>(
   ...orderByConstraint: QueryOrderByConstraint[]
 ): Promise<PaginationQuery<T>> => {
   async function exportQuery(query: Query<T>): Promise<PaginationQuery<T>> {
-    const docsSnapshot = await getDocs<T>(query);
+    const docsSnapshot = await getDocs(query);
     const snapshot = await getCountFromServer(unpaginatedQuery);
     const docs = docsSnapshot.docs;
     let cursor = undefined;
@@ -69,5 +69,5 @@ export const paginate = async <T>(
       : []),
     limit(pagination.limit + 1),
   ];
-  return exportQuery(query<T>(unpaginatedQuery, ...constraints));
+  return exportQuery(query(unpaginatedQuery, ...constraints));
 };

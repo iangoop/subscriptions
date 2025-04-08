@@ -38,11 +38,12 @@ export const CustomerAddressSchema = object({
   city: string().required(),
   region: string().optional(),
   postcode: string().required(),
-  country: string().required(),
+  country: string().optional(),
   phone: string().optional(),
   isDefault: bool().default(false),
   isDefaultBilling: bool().default(false),
   isDefaultShipping: bool().default(false),
+  isActive: bool().default(true),
 });
 
 export type CustomerAddress = InferType<typeof CustomerAddressSchema>;
@@ -51,4 +52,8 @@ export type PaginationQuery<T> = {
   count: number;
   next?: string;
   data: T[];
+};
+
+export type Archivable = {
+  isActive: boolean;
 };

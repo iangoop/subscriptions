@@ -5,7 +5,7 @@ import {
   CustomerAddressSchema,
   ICustomerAddress,
 } from '@src/models/CustomerAddress';
-import { crudRest } from '@src/helpers/routes';
+import { crudRest, unarchive } from '@src/helpers/routes';
 import { Pagination, PaginationSchema } from '@src/helpers/pagination';
 
 const addCustomerAddressSchema = Type.Pick(CustomerAddressSchema, [
@@ -48,31 +48,23 @@ const customerDependencyParamSchema = Type.Object({
 
 type CustomerIdQueryString = Static<typeof customerDependencyParamSchema>;
 
-const convertQueryString = (
-  param: CustomerIdQueryString,
-): Pick<ICustomerAddress, 'customerId'> => {
-  return {
-    customerId: param.customerId,
-  };
-};
-
 const customerAddressess: FastifyPluginAsyncTypebox = async (
   fastify,
   opts,
 ): Promise<void> => {
-  crudRest<
-    ICustomerAddress,
-    QueryFilter,
-    CustomerIdQueryString,
-    Pick<ICustomerAddress, 'customerId'>
-  >(
+  const service = customerAddressService();
+  crudRest<ICustomerAddress, QueryFilter, CustomerIdQueryString>(
     fastify,
-    customerAddressService(),
+    service,
     addCustomerAddressSchema,
     addCustomerAddressSchema,
     getAllSchema,
     customerDependencyParamSchema,
-    convertQueryString,
+  );
+  unarchive<ICustomerAddress, CustomerIdQueryString>(
+    fastify,
+    service,
+    customerDependencyParamSchema,
   );
 
   return Promise.resolve();

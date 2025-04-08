@@ -43,9 +43,9 @@
     "dotenv": "^16.0.3",
     "fastify": "^4.10.2",
     "fastify-plugin": "^4.3.0",
-    "firebase": "^9.14.0",
-    "firebase-admin": "^12.6.0",
-    "firebase-functions": "^6.0.1",
+    "firebase": "^11.5.0",
+    "firebase-admin": "^13.2.0",
+    "firebase-functions": "^6.3.2",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

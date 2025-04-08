@@ -8,10 +8,11 @@ import { ObjectSchema } from 'yup';
 import { useParams } from 'react-router-dom';
 import { ById } from '@mytypes/crud';
 
-interface Controller extends FormStateManagementFunctions<Customer> {
+export interface CustomerController
+  extends FormStateManagementFunctions<Customer> {
   validationSchema: ObjectSchema<Customer>;
 }
-function useCustomerController(props: Props): Controller {
+function useCustomerController(props: Props): CustomerController {
   const { id } = useParams<ById>();
   const useFormState = formStateManagement<Customer>(
     id,

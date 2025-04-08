@@ -7,26 +7,39 @@ import { Empty } from '@mytypes/util';
 import { BaseObject, PaginationQuery } from '@mytypes/model';
 import { getListWithNoDuplicates } from 'src/util/Pagination';
 import { useNavigate } from 'react-router-dom';
+import { normalizeObjectId, timedActions } from 'src/util/Common';
 
 export interface Props {}
 
 export interface CommonState {
   isLoading: boolean;
+  invalidate: boolean;
 }
 
 export interface FormState extends CommonState {
   isSubmiting: boolean;
+  isProcessingRequest: boolean;
 }
 
 export interface FormDataState<T> extends FormState {
   data: T;
   showConfirmation: boolean;
   showError: boolean;
+  showSuccess: boolean;
 }
 
+export type FormSubmit<T> = (
+  values: T,
+  formikHelpers: FormikHelpers<T>,
+) => Promise<void>;
+
 export interface FormStateManagementFunctions<T> {
+  objectId: () => string;
   state: FormDataState<T>;
-  onSubmit: (values: T, formikHelpers: FormikHelpers<T>) => Promise<void>;
+  isUpdateOperation: () => boolean;
+  onSubmit: FormSubmit<T>;
+  onRemove: () => Promise<void>;
+  onUnarchive: () => Promise<void>;
   handleConfirmationClose: () => void;
   handleConfirmationShow: () => void;
 }
@@ -91,19 +104,58 @@ export class ObjectManagement<T> {
     );
     return response.data;
   }
+
+  async delete(key: string, queryParams?: object) {
+    const response = await axios.delete<T>(
+      EnvVars.apiUrl + '/' + this.url + '/' + key,
+      {
+        params: queryParams,
+        withCredentials: false,
+      },
+    );
+    return response.data;
+  }
+
+  async unarchive(key: string, queryParams?: object) {
+    const response = await axios.patch<T>(
+      EnvVars.apiUrl + '/' + this.url + '/unarchive/' + key,
+      {},
+      {
+        params: queryParams,
+        withCredentials: false,
+      },
+    );
+    return response.data;
+  }
 }
 
-export function formStateManagement<T>(
+function utilFormStateManagement(objectId: string | undefined) {
+  return {
+    objectId: () => {
+      return normalizeObjectId(objectId);
+    },
+    isUpdateOperation: () => {
+      return !!objectId && objectId === CREATE;
+    },
+  };
+}
+
+export function formStateManagement<T extends BaseObject>(
   objectId: string | undefined,
   initialState: T,
   serviceUrl: string,
 ): FormStateManagementFunctions<T> {
+  const util = utilFormStateManagement(objectId);
+  const navigate = useNavigate();
   const objectManagement = new ObjectManagement<T>(serviceUrl);
   const [state, setState] = React.useState<FormDataState<T>>({
     isLoading: false,
+    invalidate: true,
     isSubmiting: false,
+    isProcessingRequest: false,
     showConfirmation: false,
     showError: false,
+    showSuccess: false,
     data: initialState,
   });
 
@@ -111,7 +163,7 @@ export function formStateManagement<T>(
     setState((state) => ({ ...state, isSubmiting: true }));
     try {
       if (objectId && objectId !== CREATE) {
-        const data: T = await objectManagement.patch(objectId, values);
+        const data = await objectManagement.patch(objectId, values);
         setState((state) => ({
           ...state,
           data: data,
@@ -126,6 +178,7 @@ export function formStateManagement<T>(
           isSubmiting: false,
           showConfirmation: true,
         }));
+        navigate('../' + data.id);
       }
     } catch (error) {
       setState((state) => ({
@@ -140,6 +193,86 @@ export function formStateManagement<T>(
           showError: false,
         }));
       }, 5000);
+    }
+  }
+
+  async function onRemove() {
+    if (objectId && objectId !== CREATE) {
+      setState((state) => ({ ...state, isProcessingRequest: true }));
+      try {
+        await objectManagement.delete(objectId);
+        timedActions(
+          () => {
+            setState((state) => ({
+              ...state,
+              isProcessingRequest: false,
+              showSuccess: true,
+            }));
+          },
+          () => {
+            setState((state) => ({
+              ...state,
+              showSuccess: false,
+            }));
+          },
+        );
+      } catch (error) {
+        timedActions(
+          () => {
+            setState((state) => ({
+              ...state,
+              isProcessingRequest: false,
+              showError: true,
+            }));
+          },
+          () => {
+            setState((state) => ({
+              ...state,
+              showError: false,
+            }));
+          },
+        );
+      }
+    }
+  }
+
+  async function onUnarchive() {
+    if (objectId && objectId !== CREATE) {
+      setState((state) => ({ ...state, isProcessingRequest: true }));
+      try {
+        await objectManagement.unarchive(objectId);
+        timedActions(
+          () => {
+            setState((state) => ({
+              ...state,
+              isProcessingRequest: false,
+              showSuccess: true,
+            }));
+          },
+          () => {
+            setState((state) => ({
+              ...state,
+              showSuccess: false,
+            }));
+          },
+        );
+      } catch (error) {
+        timedActions(
+          () => {
+            setState((state) => ({
+              ...state,
+              isProcessingRequest: false,
+              showError: true,
+            }));
+          },
+          () => {
+            setState((state) => ({
+              ...state,
+              showError: false,
+            }));
+          },
+        );
+      }
     }
   }
 
@@ -174,16 +307,19 @@ export function formStateManagement<T>(
       setState((state) => ({
         ...state,
         isLoading: false,
+        data: initialState,
       }));
     }
   }, [objectId]);
 
-  return {
+  return Object.assign(util, {
     state: state,
     onSubmit: onSubmit,
+    onRemove: onRemove,
+    onUnarchive: onUnarchive,
     handleConfirmationClose: handleConfirmationClose,
     handleConfirmationShow: handleConfirmationShow,
-  };
+  });
 }
 
 export interface ObjectFormDataState<T> extends FormDataState<T> {
@@ -193,7 +329,7 @@ export interface ObjectFormDataState<T> extends FormDataState<T> {
 export interface ObjectFormStateManagementFunctions<T>
   extends FormStateManagementFunctions<T> {
   state: ObjectFormDataState<T>;
-  onOpenPane: (data: T) => void;
+  onOpenPane: (data?: T) => void;
   onClosePane: () => void;
 }
 
@@ -204,16 +340,21 @@ export function objectFormStateManagement<T extends BaseObject>(
   objectCollectionReference: (T | Empty)[],
   additionalQueryParam: object,
   navigateFrom: () => string,
-  navigateTo: (data: T) => string,
+  navigateTo: (data: string) => string,
+  notifyChanges: () => void = () => {},
 ): ObjectFormStateManagementFunctions<T> {
+  const util = utilFormStateManagement(objectId);
   const navigate = useNavigate();
   const objectManagement = new ObjectManagement<T>(serviceUrl);
   const [state, setState] = React.useState<ObjectFormDataState<T>>({
     isLoading: false,
+    invalidate: true,
     isSubmiting: false,
+    isProcessingRequest: false,
     isPaneOpen: false,
     showConfirmation: false,
     showError: false,
+    showSuccess: false,
     data: initialState,
   });
 
@@ -232,6 +373,8 @@ export function objectFormStateManagement<T extends BaseObject>(
           isSubmiting: false,
           showConfirmation: true,
         }));
+        onClosePane();
+        notifyChanges();
       } else {
         const data = await objectManagement.create(
           values,
@@ -243,20 +386,110 @@ export function objectFormStateManagement<T extends BaseObject>(
           isSubmiting: false,
           showConfirmation: true,
         }));
+        onClosePane();
+        notifyChanges();
       }
     } catch (error) {
-      setState((state) => ({
-        ...state,
-        isSubmiting: false,
-        showConfirmation: false,
-        showError: true,
-      }));
-      setTimeout(() => {
-        setState((state) => ({
-          ...state,
-          showError: false,
-        }));
-      }, 5000);
+      timedActions(
+        () => {
+          setState((state) => ({
+            ...state,
+            isSubmiting: false,
+            showConfirmation: false,
+            showError: true,
+          }));
+        },
+        () => {
+          setState((state) => ({
+            ...state,
+            showError: false,
+          }));
+        },
+      );
+    }
+  }
+
+  async function onRemove() {
+    if (objectId && objectId !== CREATE) {
+      setState((state) => ({ ...state, isProcessingRequest: true }));
+      try {
+        await objectManagement.delete(objectId, additionalQueryParam);
+        timedActions(
+          () => {
+            setState((state) => ({
+              ...state,
+              isProcessingRequest: false,
+              showSuccess: true,
+            }));
+            onClosePane();
+            notifyChanges();
+          },
+          () => {
+            setState((state) => ({
+              ...state,
+              showSuccess: false,
+            }));
+          },
+        );
+      } catch (error) {
+        timedActions(
+          () => {
+            setState((state) => ({
+              ...state,
+              isProcessingRequest: false,
+              showError: true,
+            }));
+          },
+          () => {
+            setState((state) => ({
+              ...state,
+              showError: false,
+            }));
+          },
+        );
+      }
+    }
+  }
+
+  async function onUnarchive() {
+    if (objectId && objectId !== CREATE) {
+      setState((state) => ({ ...state, isProcessingRequest: true }));
+      try {
+        await objectManagement.unarchive(objectId, additionalQueryParam);
+        timedActions(
+          () => {
+            setState((state) => ({
+              ...state,
+              isProcessingRequest: false,
+              showSuccess: true,
+            }));
+            onClosePane();
+            notifyChanges();
+          },
+          () => {
+            setState((state) => ({
+              ...state,
+              showSuccess: false,
+            }));
+          },
+        );
+      } catch (error) {
+        timedActions(
+          () => {
+            setState((state) => ({
+              ...state,
+              isProcessingRequest: false,
+              showError: true,
+            }));
+          },
+          () => {
+            setState((state) => ({
+              ...state,
+              showError: false,
+            }));
+          },
+        );
+      }
     }
   }
 
@@ -274,8 +507,8 @@ export function objectFormStateManagement<T extends BaseObject>(
     }));
   }
 
-  function onOpenPane(data: T) {
-    navigate(navigateTo(data));
+  function onOpenPane(data?: T) {
+    navigate(navigateTo(normalizeObjectId(data?.id)));
   }
 
   function onClosePane() {
@@ -284,11 +517,14 @@ export function objectFormStateManagement<T extends BaseObject>(
 
   useEffect(() => {
     if (objectId) {
-      const data = objectCollectionReference
-        .filter((objectRef) => {
-          return objectRef.id == objectId;
-        })
-        .shift();
+      let data = Object.assign({}, initialState);
+      if (objectId && objectId !== CREATE) {
+        data = objectCollectionReference
+          .filter((objectRef) => {
+            return objectRef.id == objectId;
+          })
+          .shift() as T;
+      }
       if (data) {
         setState((state) => ({
           ...state,
@@ -305,14 +541,17 @@ export function objectFormStateManagement<T extends BaseObject>(
     }
   }, [objectId, objectCollectionReference]);
 
-  return {
+  return Object.assign(util, {
+    objectId: normalizeObjectId(objectId),
     state: state,
     onSubmit: onSubmit,
+    onRemove: onRemove,
+    onUnarchive: onUnarchive,
     handleConfirmationClose: handleConfirmationClose,
     handleConfirmationShow: handleConfirmationShow,
     onOpenPane: onOpenPane,
     onClosePane: onClosePane,
-  };
+  });
 }
 
 export interface ListDataState<T> extends CommonState {
@@ -323,6 +562,7 @@ export interface ListDataState<T> extends CommonState {
 
 export interface ListStateManagementFunctions<T> {
   state: ListDataState<T>;
+  invalidate: () => void;
   fetchItems: () => void;
 }
 
@@ -334,6 +574,7 @@ export function listStateManagement<T extends BaseObject>(
   const objectManagement = new ObjectManagement<T>(serviceUrl);
   const [state, setState] = React.useState<ListDataState<T>>({
     isLoading: false,
+    invalidate: true,
     data: Array<Empty>(pageItemsQty).fill({}),
     cursor: undefined,
     hasMore: true,
@@ -366,12 +607,26 @@ export function listStateManagement<T extends BaseObject>(
     }
   }
 
+  function invalidate() {
+    setState((state) => ({
+      ...state,
+      invalidate: true,
+    }));
+  }
+
   useEffect(() => {
-    fetchItems();
-  }, []);
+    if (state.invalidate) {
+      setState((state) => ({
+        ...state,
+        invalidate: false,
+      }));
+      fetchItems();
+    }
+  }, [state.invalidate]);
 
   return {
     state: state,
+    invalidate: invalidate,
     fetchItems: fetchItems,
   };
 }

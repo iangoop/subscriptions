@@ -1,6 +1,12 @@
 import { firestoreInstance } from '@src/configurations/firebase';
 import { validateDocInSubcollection } from '@src/helpers/dbfunctions';
 import {
+  createError,
+  ErrorRecord,
+  InternalErrorList,
+  refineError,
+} from '@src/helpers/errors';
+import {
   IValidation,
   IValidator,
   processErrors,
@@ -13,10 +19,11 @@ import {
   ICustomerAddress,
 } from '@src/models/CustomerAddress';
 import { doc, getDoc } from 'firebase/firestore';
+import { format } from 'util';
 
 async function validateCustomer(
   customerAddress: ICustomerAddress,
-  err: string[],
+  err: ErrorRecord[],
 ) {
   const customer = await getDoc(
     doc(
@@ -27,7 +34,10 @@ async function validateCustomer(
   );
   if (!customer.exists()) {
     err.push(
-      "Can't find customer with id " + customerAddress.customerId.toString(),
+      createError(
+        'ca001',
+        format(InternalErrorList.ca001, customerAddress.customerId.toString()),
+      ),
     );
   }
   return customer;
@@ -36,7 +46,7 @@ async function validateCustomer(
 export const customerAddressValidator: IValidator<ICustomerAddress> = {
   core: validatorFactory<ICustomerAddress>(CustomerAddressSchema),
   async validate(id: string, model: ICustomerAddress): Promise<IValidation> {
-    const err: string[] = this.core.verify(model);
+    const err = this.core.verify(model);
     if ((await validateCustomer(model, err)).exists()) {
       try {
         await validateDocInSubcollection(
@@ -46,14 +56,14 @@ export const customerAddressValidator: IValidator<ICustomerAddress> = {
           CustomerCollection,
         );
       } catch (error) {
-        err.push(error as string);
+        refineError(err, error);
       }
     }
 
     return processErrors(err);
   },
   async instantiable(model: ICustomerAddress): Promise<IValidation> {
-    const err: string[] = this.core.verify(model);
+    const err = this.core.verify(model);
 
     await validateCustomer(model, err);
     return processErrors(err);

@@ -11,28 +11,25 @@ export const defaultConvertQueryString = <T, K>(param: T): K => {
   return param as unknown as K;
 };
 
-export const defaultQueryParamSchema = Type.Object(
+export const defaultQueryStringParamSchema = Type.Object(
   {},
   { additionalProperties: false },
 );
-export type defaultQueryParam = Static<typeof defaultQueryParamSchema>;
+export type defaultQueryStringParam = Static<
+  typeof defaultQueryStringParamSchema
+>;
 
 export const crudRest = <
   T extends Identified & Timestamped,
   QueryParamGetAll extends Pagination = Pagination,
-  CustomQueryParam = defaultQueryParam,
-  ConvertedQueryString = defaultQueryParam,
+  CustomQueryStringParam = defaultQueryStringParam,
 >(
   fastify: FastifyInstance,
   service: Crud<T>,
   postSchema: TSchema,
   patchSchema: TSchema = postSchema,
   getAllQueryParamSchema: TSchema = PaginationSchema,
-  queryParamSchema: TSchema = defaultQueryParamSchema,
-  convertQueryParam: ConvertQueryString<
-    CustomQueryParam,
-    ConvertedQueryString
-  > = defaultConvertQueryString,
+  queryStringParamSchema: TSchema = defaultQueryStringParamSchema,
 ) => {
   fastify.get<{ Querystring: QueryParamGetAll }>(
     '/',
@@ -42,62 +39,67 @@ export const crudRest = <
     },
   );
 
-  fastify.get<{ Querystring: CustomQueryParam }>(
+  fastify.get<{ Querystring: CustomQueryStringParam }>(
     '/:id',
-    { schema: { querystring: queryParamSchema } },
+    { schema: { querystring: queryStringParamSchema } },
     async function (request, reply) {
       return await service.getById(
-        Object.assign(
-          {},
-          request.params,
-          convertQueryParam(request.query as CustomQueryParam),
-        ) as Identified & ConvertedQueryString,
+        Object.assign({}, request.params, request.query) as Identified &
+          CustomQueryStringParam,
       );
     },
   );
 
-  fastify.post<{ Querystring: CustomQueryParam; Body: T }>(
+  fastify.post<{ Querystring: CustomQueryStringParam; Body: T }>(
     '/',
-    { schema: { body: postSchema } },
+    { schema: { body: postSchema, querystring: queryStringParamSchema } },
     async function (request, reply) {
       return await service.create(
-        Object.assign(
-          {},
-          convertQueryParam(request.query as CustomQueryParam),
-          request.body,
-        ) as T,
+        Object.assign({}, request.query, request.body) as T,
       );
     },
   );
 
-  fastify.patch<{ Querystring: CustomQueryParam; Params: Identified; Body: T }>(
+  fastify.patch<{
+    Querystring: CustomQueryStringParam;
+    Params: Identified;
+    Body: T;
+  }>(
     '/:id',
-    { schema: { body: patchSchema, querystring: queryParamSchema } },
+    { schema: { body: patchSchema, querystring: queryStringParamSchema } },
     async function (request, reply) {
       const { id } = request.params;
 
       return await service.update(
         id,
-        Object.assign(
-          {},
-          convertQueryParam(request.query as CustomQueryParam),
-          request.body,
-        ) as T,
+        Object.assign({}, request.query, request.body) as T,
       );
     },
   );
 
-  fastify.delete<{ Querystring: CustomQueryParam; Params: Identified }>(
+  fastify.delete<{ Querystring: CustomQueryStringParam; Params: Identified }>(
     '/:id',
-    { schema: { querystring: queryParamSchema } },
+    { schema: { querystring: queryStringParamSchema } },
     async function (request, reply) {
-      await service.delete(
-        Object.assign(
-          {},
-          request.params,
-          convertQueryParam(request.query as CustomQueryParam),
-        ),
-      );
+      await service.delete(Object.assign({}, request.params, request.query));
+      return reply.code(204).send();
+    },
+  );
+};
+
+export const unarchive = <
+  T extends Identified & Timestamped,
+  CustomQueryStringParam = defaultQueryStringParam,
+>(
+  fastify: FastifyInstance,
+  service: Crud<T>,
+  queryStringParamSchema: TSchema = defaultQueryStringParamSchema,
+) => {
+  fastify.patch<{ Querystring: CustomQueryStringParam; Params: Identified }>(
+    '/unarchive/:id',
+    { schema: { querystring: queryStringParamSchema } },
+    async function (request, reply) {
+      await service.unarchive(Object.assign({}, request.params, request.query));
       return reply.code(204).send();
     },
   );

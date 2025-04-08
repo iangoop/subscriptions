@@ -49,6 +49,7 @@ function useCustomerAddressController(props: Props): Controller {
       isDefault: false,
       isDefaultBilling: false,
       isDefaultShipping: false,
+      isActive: true,
     },
     'customer-addresses',
     useListStaste.state.data,
@@ -56,8 +57,11 @@ function useCustomerAddressController(props: Props): Controller {
     () => {
       return '/customers/' + customerId;
     },
-    (data) => {
-      return '/customers/' + customerId + '/address/' + data.id;
+    (objectId) => {
+      return '/customers/' + customerId + '/address/' + objectId;
+    },
+    () => {
+      useListStaste.invalidate();
     },
   );
 

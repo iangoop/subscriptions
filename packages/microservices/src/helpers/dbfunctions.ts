@@ -17,7 +17,11 @@ import {
   QueryConstraint,
   CollectionReference,
 } from 'firebase/firestore';
-import { InvalidReferenceError } from './errors';
+import {
+  createError,
+  InvalidReferenceError,
+  NotArchivableEntryError,
+} from './errors';
 import {
   paginate,
   Pagination,
@@ -33,6 +37,10 @@ export type Timestamped = {
 
 export type Identified = {
   id: string;
+};
+
+export type IsActive = {
+  isActive: boolean;
 };
 
 export type Referenced<T extends string> = {
@@ -72,7 +80,7 @@ export const fromDoc = <T extends Identified>(
     object.id = snapshot.id;
     return object;
   }
-  throw new Error('Document does not exist');
+  throw new InvalidReferenceError(createError('doc004'));
 };
 
 export const validateDoc = async <T = DocumentData>(
@@ -81,7 +89,7 @@ export const validateDoc = async <T = DocumentData>(
   converter?: FirestoreDataConverter<T>,
 ): Promise<QueryDocumentSnapshot<T>> => {
   if (!id) {
-    throw new ValidationError('Id paramater can not be empty');
+    throw new ValidationError(createError('doc002'));
   }
   let docRef = (
     collection instanceof CollectionReference
@@ -93,7 +101,7 @@ export const validateDoc = async <T = DocumentData>(
   }
   const docSnapshot = await getDoc(docRef);
   if (!docSnapshot.exists()) {
-    throw new InvalidReferenceError('Document not found');
+    throw new InvalidReferenceError(createError('doc004'));
   }
   return docSnapshot;
 };
@@ -106,10 +114,10 @@ export const validateDocInSubcollection = async <T = DocumentData>(
   converter?: FirestoreDataConverter<T>,
 ): Promise<QueryDocumentSnapshot<T>> => {
   if (!id) {
-    throw new ValidationError('Id paramater can not be empty');
+    throw new ValidationError(createError('doc002'));
   }
   if (!parentId) {
-    throw new ValidationError('Parent Id paramater can not be empty');
+    throw new ValidationError(createError('doc003'));
   }
 
   const parentDocRef: DocumentReference =
@@ -124,7 +132,7 @@ export const validateDocInSubcollection = async <T = DocumentData>(
   }
   const docSnapshot = await getDoc(docRef);
   if (!docSnapshot.exists()) {
-    throw new InvalidReferenceError('Document not found');
+    throw new InvalidReferenceError(createError('doc004'));
   }
   return docSnapshot;
 };
@@ -150,7 +158,7 @@ export class Crud<T extends Identified & Timestamped> {
     );
   }
 
-  getCollectionRef() {
+  getCollectionReference() {
     return collection(firestoreInstance, this.collection).withConverter(
       this.converter,
     );
@@ -168,7 +176,7 @@ export class Crud<T extends Identified & Timestamped> {
     filter: U,
   ): Promise<PaginationQuery<T>> {
     try {
-      const collectionRef = this.getCollectionRef();
+      const collectionRef = this.getCollectionReference();
       return paginate(
         query(collectionRef, ...constraints).withConverter(this.converter),
         filter,
@@ -184,7 +192,7 @@ export class Crud<T extends Identified & Timestamped> {
 
   async getAll<U extends Pagination>(filter: U): Promise<PaginationQuery<T>> {
     try {
-      const collectionRef = this.getCollectionRef();
+      const collectionRef = this.getCollectionReference();
       return paginate(
         query(collectionRef).withConverter(this.converter),
         filter,
@@ -220,7 +228,7 @@ export class Crud<T extends Identified & Timestamped> {
 
   async create(model: T): Promise<T> {
     await this.prepareCreate(model);
-    const docRef = await addDoc(this.getCollectionRef(), model);
+    const docRef = await addDoc(this.getCollectionReference(), model);
     return fromDoc(await getDoc(docRef));
   }
 
@@ -241,28 +249,43 @@ export class Crud<T extends Identified & Timestamped> {
     return fromDoc(await getDoc(docRef));
   }
 
-  async delete(queryId: Identified) {
-    const docSnapshot = await validateDoc(queryId.id, this.collection);
-    deleteDoc(docSnapshot.ref);
+  async delete(queryId: Identified): Promise<T> {
+    const docSnapshot = await validateDoc(
+      queryId.id,
+      this.collection,
+      this.converter,
+    );
+    const document = docSnapshot.data();
+    if (this.isEntityArchivable(document)) {
+      updateDoc(docSnapshot.ref, { isActive: false } as UpdateData<T>);
+      document.isActive = false;
+    } else {
+      deleteDoc(docSnapshot.ref);
+    }
+    return document;
   }
-}
 
-export type ParentIdentified = {
-  parentId: string;
-};
+  async unarchive(queryId: Identified) {
+    const docSnapshot = await validateDoc(
+      queryId.id,
+      this.collection,
+      this.converter,
+    );
+    if (this.isEntityArchivable(docSnapshot.data())) {
+      updateDoc(docSnapshot.ref, { isActive: true } as UpdateData<T>);
+    } else {
+      throw new NotArchivableEntryError(createError('doc005'));
+    }
+  }
 
-export type SubcollectionIdentity = Identified & ParentIdentified;
-
-function isParentIdentified<T extends object>(
-  filter: T,
-): filter is T & ParentIdentified {
-  return typeof (filter as Partial<ParentIdentified>)?.parentId === 'string';
+  isEntityArchivable(entity: T): entity is T & IsActive {
+    return 'isActive' in entity;
+  }
 }
 
 export class CrudSubcollection<
   K extends Exclude<string, 'id'>,
   T extends Identified & Timestamped & Referenced<K>,
-  F = ParentIdentified,
 > extends Crud<T> {
   parentKey: K;
   parentCollection: string;
@@ -279,24 +302,29 @@ export class CrudSubcollection<
     this.parentCollection = parentCollection;
   }
 
-  getSubcollectionRef(parentRef: string | DocumentReference<DocumentData>) {
+  getSubcollectionReference(
+    parentRef: string | DocumentReference<DocumentData>,
+  ) {
     return parentRef instanceof DocumentReference
       ? collection(parentRef, this.collection).withConverter(this.converter)
-      : collection(this.getParentRef(parentRef), this.collection).withConverter(
-          this.converter,
-        );
+      : collection(
+          this.getParentReference(parentRef),
+          this.collection,
+        ).withConverter(this.converter);
   }
 
-  getParentRef(parentId: string) {
+  getParentReference(parentId: string) {
     return doc(firestoreInstance, this.parentCollection, parentId);
   }
 
   async processQuery<U extends Pagination>(
     constraints: QueryConstraint[],
-    filter: U & ParentIdentified,
+    filter: U & Referenced<K>,
   ): Promise<PaginationQuery<T>> {
     try {
-      const subcollectionRef = this.getSubcollectionRef(filter.parentId);
+      const subcollectionRef = this.getSubcollectionReference(
+        filter[this.parentKey],
+      );
       return paginate(
         query(subcollectionRef, ...constraints).withConverter(this.converter),
         filter,
@@ -310,8 +338,10 @@ export class CrudSubcollection<
     }
   }
 
-  async getById(queryId: SubcollectionIdentity): Promise<T> {
-    const subcollectionRef = this.getSubcollectionRef(queryId.parentId);
+  async getById(queryId: Identified & Referenced<K>): Promise<T> {
+    const subcollectionRef = this.getSubcollectionReference(
+      queryId[this.parentKey],
+    );
 
     const docSnapshot = await validateDoc<T>(
       queryId.id,
@@ -322,21 +352,20 @@ export class CrudSubcollection<
   }
 
   async getAll<U extends Pagination>(
-    filter: U & F,
+    filter: U & Referenced<K>,
   ): Promise<PaginationQuery<T>> {
     try {
-      if (isParentIdentified(filter)) {
-        const subcollectionRef = this.getSubcollectionRef(filter.parentId);
-        return paginate(
-          subcollectionRef,
-          filter,
-          subcollectionRef,
-          (docsSnapshot: Array<QueryDocumentSnapshot<T>>) => {
-            return fromQuery(docsSnapshot);
-          },
-        );
-      }
-      return {} as PaginationQuery<T>;
+      const subcollectionRef = this.getSubcollectionReference(
+        filter[this.parentKey],
+      );
+      return paginate(
+        subcollectionRef,
+        filter,
+        subcollectionRef,
+        (docsSnapshot: Array<QueryDocumentSnapshot<T>>) => {
+          return fromQuery(docsSnapshot);
+        },
+      );
     } catch (error) {
       return {} as PaginationQuery<T>;
     }
@@ -346,8 +375,8 @@ export class CrudSubcollection<
     await this.prepareCreate(model);
     const { [this.parentKey]: parentKey, ...toPersist } = model;
 
-    const parentRef = this.getParentRef(parentKey);
-    const subcollectionRef = this.getSubcollectionRef(parentRef);
+    const parentRef = this.getParentReference(parentKey);
+    const subcollectionRef = this.getSubcollectionReference(parentRef);
 
     const docRef = await addDoc(subcollectionRef, toPersist as T);
     const docSnapshot = await getDoc(docRef);
@@ -358,21 +387,47 @@ export class CrudSubcollection<
     await this.prepareUpdate(id, model);
     const { [this.parentKey]: parentKey, ...toPersist } = model;
 
-    const parentRef = this.getParentRef(parentKey);
-    const subcollectionRef = this.getSubcollectionRef(parentRef);
+    const parentRef = this.getParentReference(parentKey);
+    const subcollectionRef = this.getSubcollectionReference(parentRef);
     const docRef = doc(subcollectionRef, id);
-    await updateDoc(docRef, toPersist as UpdateData<T>);
+    await updateDoc(docRef, toPersist);
     return fromDoc(await getDoc(docRef));
   }
 
-  async delete(queryId: SubcollectionIdentity) {
-    const subcollectionRef = this.getSubcollectionRef(queryId.parentId);
+  async delete(queryId: Identified & Referenced<K>): Promise<T> {
+    const subcollectionRef = this.getSubcollectionReference(
+      queryId[this.parentKey],
+    );
 
-    const docSnapshot = await validateDoc<T>(
+    const docSnapshot = await validateDoc(
       queryId.id,
       subcollectionRef,
       this.converter,
     );
-    deleteDoc(docSnapshot.ref);
+    const document = docSnapshot.data();
+    if (this.isEntityArchivable(document)) {
+      updateDoc(docSnapshot.ref, { isActive: false });
+      document.isActive = false;
+    } else {
+      deleteDoc(docSnapshot.ref);
+    }
+    return document;
+  }
+
+  async unarchive(queryId: Identified & Referenced<K>) {
+    const subcollectionRef = this.getSubcollectionReference(
+      queryId[this.parentKey],
+    );
+
+    const docSnapshot = await validateDoc(
+      queryId.id,
+      subcollectionRef,
+      this.converter,
+    );
+    if (this.isEntityArchivable(docSnapshot.data())) {
+      updateDoc(docSnapshot.ref, { isActive: true });
+    } else {
+      throw new NotArchivableEntryError(createError('doc005'));
+    }
   }
 }

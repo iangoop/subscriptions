@@ -69,6 +69,7 @@ body {
   display: flex;
   justify-content: center;
   padding-top: map-get($spacers, 4);
+  gap: map-get($spacers, 2);
 }
 
 .floating {

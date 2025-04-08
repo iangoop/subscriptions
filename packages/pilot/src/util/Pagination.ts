@@ -4,9 +4,9 @@ export function getListWithNoDuplicates<T extends BaseObject>(
   list: T[],
   toAdd: T[],
 ): T[] {
-  return list.concat(
-    toAdd.filter(
-      (itemToAdd) => !list.some((itemList) => itemList.id === itemToAdd.id),
-    ),
-  );
+  return list
+    .filter(
+      (itemList) => !toAdd.some((itemToAdd) => itemList.id === itemToAdd.id),
+    )
+    .concat(toAdd);
 }

@@ -21,6 +21,7 @@ export const CustomerAddressSchema = Type.Object({
   isDefault: Type.Boolean({ default: false }),
   isDefaultBilling: Type.Boolean({ default: false }),
   isDefaultShipping: Type.Boolean({ default: false }),
+  isActive: Type.Boolean({ default: true }),
 });
 
 export type ICustomerAddress = Static<typeof CustomerAddressSchema> &

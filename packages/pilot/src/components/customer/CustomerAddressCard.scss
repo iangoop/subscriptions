@@ -13,6 +13,8 @@
     }
     .tags {
       border-bottom: none;
+      display: flex;
+      gap: map-get($spacers, 2);
     }
   }
 }

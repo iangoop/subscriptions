@@ -26,6 +26,7 @@ export type CustomerAddress = {
   isDefault: boolean;
   isDefaultBilling: boolean;
   isDefaultShipping: boolean;
+  isActive: boolean;
   updated: string;
   created: string;
 };
@@ -69,6 +70,7 @@ const getRawAddress = (address: CustomerAddress) => {
     'isDefault',
     'isDefaultBilling',
     'isDefaultShipping',
+    'isActive',
     'created',
     'updated',
   ]);

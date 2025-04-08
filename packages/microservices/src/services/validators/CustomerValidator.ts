@@ -13,6 +13,13 @@ import {
 } from '@src/models/Customer';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { customerConverter } from '../converters/CustomerConverter';
+import {
+  createError,
+  ErrorRecord,
+  InternalErrorList,
+  refineError,
+} from '@src/helpers/errors';
+import { format } from 'util';
 
 async function getDocSnapshotByEmail(customer: ICustomer) {
   const q = query(
@@ -20,12 +27,12 @@ async function getDocSnapshotByEmail(customer: ICustomer) {
     where('email', '==', customer.email),
   ).withConverter(customerConverter);
 
-  return getDocs<ICustomer>(q);
+  return getDocs(q);
 }
 
 async function validateEmail(
   customer: ICustomer,
-  err: string[],
+  err: Record<string, string>[],
   id?: string,
 ): Promise<void> {
   const snapshot = await getDocSnapshotByEmail(customer);
@@ -37,19 +44,21 @@ async function validateEmail(
     });
   }
   if (!isFree) {
-    err.push('Email ' + customer.email + ' can not be set for the customer');
+    err.push(
+      createError('cu001', format(InternalErrorList.cu001, customer.email)),
+    );
   }
 }
 
 export const customerValidator: IValidator<ICustomer> = {
   core: validatorFactory<ICustomer>(CustomerSchema),
   async validate(id: string, model: ICustomer): Promise<IValidation> {
-    const err: string[] = this.core.verify(model);
+    const err: ErrorRecord[] = this.core.verify(model);
 
     try {
       await validateDoc(id, CustomerCollection);
     } catch (error) {
-      err.push(error as string);
+      refineError(err, error);
     }
     await validateEmail(model, err, id);
 
@@ -57,9 +66,9 @@ export const customerValidator: IValidator<ICustomer> = {
   },
 
   async instantiable(model: ICustomer): Promise<IValidation> {
-    const err: string[] = this.core.verify(model);
+    const err: ErrorRecord[] = this.core.verify(model);
     if (model.id) {
-      err.push('Customer already associated with a doc');
+      err.push(createError('doc001'));
     } else {
       await validateEmail(model, err);
     }

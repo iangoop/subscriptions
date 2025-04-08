@@ -69,6 +69,11 @@ const CustomerAddressCard: React.FC<{
                 {t('customer.addressDetail.defaultShipping')}
               </span>
             )}
+            {!props.customerAddress.isActive && (
+              <span className="badge text-bg-light">
+                {t('general.archived')}
+              </span>
+            )}
           </div>
         </div>
         <div className="action">

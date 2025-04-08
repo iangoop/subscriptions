@@ -20,6 +20,7 @@ function useProductListController(props: Props): Controller {
   const pageItemsQty = 32;
   const [state, setState] = React.useState<State>({
     isLoading: false,
+    invalidate: true,
     data: Array<Empty>(pageItemsQty).fill({}),
     cursor: undefined,
     hasMore: true,
