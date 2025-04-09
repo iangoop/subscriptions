@@ -8,6 +8,7 @@ import { BaseObject, PaginationQuery } from '@mytypes/model';
 import { getListWithNoDuplicates } from 'src/util/Pagination';
 import { useNavigate } from 'react-router-dom';
 import { normalizeObjectId, timedActions } from 'src/util/Common';
+import { ObjectSchema } from 'yup';
 
 export interface Props {}
 
@@ -33,7 +34,7 @@ export type FormSubmit<T> = (
   formikHelpers: FormikHelpers<T>,
 ) => Promise<void>;
 
-export interface FormStateManagementFunctions<T> {
+export interface FormStateManagementFunctions<T extends BaseObject> {
   objectId: () => string;
   state: FormDataState<T>;
   isUpdateOperation: () => boolean;
@@ -42,6 +43,7 @@ export interface FormStateManagementFunctions<T> {
   onUnarchive: () => Promise<void>;
   handleConfirmationClose: () => void;
   handleConfirmationShow: () => void;
+  validationSchema: ObjectSchema<T>;
 }
 
 export class ObjectManagement<T> {
@@ -141,6 +143,7 @@ function utilFormStateManagement(objectId: string | undefined) {
 }
 
 export function formStateManagement<T extends BaseObject>(
+  schema: ObjectSchema<T>,
   objectId: string | undefined,
   initialState: T,
   serviceUrl: string,
@@ -319,6 +322,7 @@ export function formStateManagement<T extends BaseObject>(
     onUnarchive: onUnarchive,
     handleConfirmationClose: handleConfirmationClose,
     handleConfirmationShow: handleConfirmationShow,
+    validationSchema: schema,
   });
 }
 
@@ -326,7 +330,7 @@ export interface ObjectFormDataState<T> extends FormDataState<T> {
   isPaneOpen: boolean;
 }
 
-export interface ObjectFormStateManagementFunctions<T>
+export interface ObjectFormStateManagementFunctions<T extends BaseObject>
   extends FormStateManagementFunctions<T> {
   state: ObjectFormDataState<T>;
   onOpenPane: (data?: T) => void;
@@ -334,6 +338,7 @@ export interface ObjectFormStateManagementFunctions<T>
 }
 
 export function objectFormStateManagement<T extends BaseObject>(
+  schema: ObjectSchema<T>,
   objectId: string | undefined,
   initialState: T,
   serviceUrl: string,
@@ -551,6 +556,7 @@ export function objectFormStateManagement<T extends BaseObject>(
     handleConfirmationShow: handleConfirmationShow,
     onOpenPane: onOpenPane,
     onClosePane: onClosePane,
+    validationSchema: schema,
   });
 }
 

@@ -1,11 +1,12 @@
 import React from 'react';
 import { Button } from 'react-bootstrap';
 import Modal from 'react-bootstrap/Modal';
-import useProductController, { Props } from 'src/controllers/ProductController';
+import useProductController from 'src/controllers/ProductController';
 import { useTranslation } from 'react-i18next';
 import './Product.scss';
 import { ErrorMessage, Field, Form, Formik } from 'formik';
 import ThumbnailUrl from 'src/components/Thumbnail';
+import { Props } from 'src/controllers/CommonController';
 
 const ProductView: React.FC<Props> = (props) => {
   const controller = useProductController(props);

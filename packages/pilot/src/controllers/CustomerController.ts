@@ -4,17 +4,15 @@ import {
   FormStateManagementFunctions,
   Props,
 } from './CommonController';
-import { ObjectSchema } from 'yup';
 import { useParams } from 'react-router-dom';
 import { ById } from '@mytypes/crud';
 
-export interface CustomerController
-  extends FormStateManagementFunctions<Customer> {
-  validationSchema: ObjectSchema<Customer>;
-}
-function useCustomerController(props: Props): CustomerController {
+function useCustomerController(
+  props: Props,
+): FormStateManagementFunctions<Customer> {
   const { id } = useParams<ById>();
   const useFormState = formStateManagement<Customer>(
+    CustomerSchema,
     id,
     {
       id: '',
@@ -25,7 +23,7 @@ function useCustomerController(props: Props): CustomerController {
     'customers',
   );
 
-  return Object.assign({ validationSchema: CustomerSchema }, useFormState);
+  return useFormState;
 }
 
 export default useCustomerController;

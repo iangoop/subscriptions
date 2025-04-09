@@ -2,11 +2,10 @@ import { CREATE } from '@mytypes/crud';
 import React from 'react';
 import { Button } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
-import useProductListController, {
-  Props,
-} from 'src/controllers/ProductListController';
+import useProductListController from 'src/controllers/ProductListController';
 import './Products.scss';
 import ProductCard from 'src/components/product/ProductCard';
+import { Props } from 'src/controllers/CommonController';
 
 const ProductsView: React.FC<Props> = (props) => {
   const controller = useProductListController(props);
