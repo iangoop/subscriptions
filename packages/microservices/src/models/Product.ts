@@ -1,12 +1,16 @@
 import { Static, Type } from '@sinclair/typebox';
 import { Identified, Timestamped } from '@src/helpers/dbfunctions';
+import {
+  Schedule,
+  ShippingMode,
+  SubscriptionOption,
+  SubscriptionOptionMode,
+} from './Shared';
 
 export const ProductCollection = 'products';
 
 export const ProductSchema = Type.Object({
   id: Type.Optional(Type.String()),
-  environmentId: Type.Optional(Type.Integer()),
-  configProfileId: Type.Optional(Type.String()),
   sku: Type.String(),
   name: Type.String(),
   shortDescription: Type.String(),
@@ -22,28 +26,13 @@ export const ProductSchema = Type.Object({
   isInStock: Type.Optional(Type.Boolean()),
   discount: Type.Optional(Type.Number()),
   isDiscountPercentage: Type.Optional(Type.Boolean()),
-  intervals: Type.Optional(Type.Array(Type.String())),
+  intervals: Type.Optional(Type.Array(Type.Enum(Schedule))),
   defaultInterval: Type.Optional(Type.String()),
-  subscriptionOptionMode: Type.Optional(
-    Type.Union([
-      Type.Literal('subscription_only'),
-      Type.Literal('subscription_and_onetime_purchase'),
-    ]),
-  ),
-  defaultSubscriptionOption: Type.Optional(
-    Type.Union([
-      Type.Literal('subscription'),
-      Type.Literal('onetime_purchase'),
-    ]),
-  ),
-  shippingMode: Type.Optional(
-    Type.Union([
-      Type.Literal('requires_shipping'),
-      Type.Literal('no_shipping'),
-    ]),
-  ),
+  subscriptionOptionMode: Type.Enum(SubscriptionOptionMode),
+  defaultSubscriptionOption: Type.Enum(SubscriptionOption),
+  shippingMode: Type.Enum(ShippingMode),
 });
 
 export type IProduct = Static<typeof ProductSchema> & Timestamped & Identified;
 
-export type IDBProduct = Omit<IProduct, 'id'>;
+export type IDBProduct = Omit<IProduct, 'id' | 'isInStock' | 'isOnSale'>;

@@ -45,12 +45,14 @@ export const InternalErrorList = {
   unk001: 'Internal error',
   in001: '%s for property %s',
   in002: 'No documents associated with the queried value',
+  fn001: 'Error while processing function %s: %s',
   doc001:
     'You are trying to create a entity with an id already associated to a document',
   doc002: 'Id paramater can not be empty',
   doc003: 'Parent Id paramater can not be empty',
   doc004: 'Document not found',
   doc005: 'Entry does not have isActive property defined',
+  doc006: '%s dependency can not be resolved',
   cu001: 'Email %s can not be set for the customer',
   ca001: "Can't find customer with id %s",
 } as const;

@@ -31,6 +31,7 @@ if (EnvVars.nodeEnv == 'development') {
   connectFirestoreEmulator(firestoreInstance, 'localhost', 8080);
   connectFunctionsEmulator(functions, 'localhost', 5001);
 }
+const functionsUrl = `${EnvVars.functionsUrl}`;
 
 export default firebaseApp;
-export { firebaseApp, firestoreInstance, functions };
+export { firebaseApp, firestoreInstance, functions, functionsUrl };

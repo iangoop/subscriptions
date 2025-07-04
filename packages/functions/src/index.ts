@@ -1,11 +1,11 @@
-import * as admin from 'firebase-admin';
 import * as glob from 'glob';
 import * as _ from 'lodash';
 import { exportProduct } from './db/migration/products';
 import { onRequest } from 'firebase-functions/v2/https';
 import { Customer, exportCustomer } from './db/migration/customers';
-
-admin.initializeApp();
+import { exportSubscriptions } from './db/migration/subscriptions';
+import { SubscriptionPayload } from './db/subscriptions';
+import { app } from './app';
 
 /** EXPORT ALL FUNCTIONS
  *
@@ -28,9 +28,14 @@ for (let f = 0, fl = files.length; f < fl; f++) {
     !process.env.FUNCTION_NAME ||
     process.env.FUNCTION_NAME === functionName
   ) {
-    // eslint-disable-next-line max-len
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-    exports[functionName] = require(file);
+    try {
+      // eslint-disable-next-line max-len
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      exports[functionName] = require(file);
+    } catch (err) {
+      console.error(`Failed to load ${file}`, err);
+      throw err;
+    }
   }
 }
 
@@ -44,3 +49,11 @@ export const migrateCustomer = onRequest(async (req, res) => {
   await exportCustomer(customerList);
   res.send('ok');
 });
+
+export const migrateSubscriptions = onRequest(async (req, res) => {
+  const deliveryList = req.body as SubscriptionPayload;
+  await exportSubscriptions(deliveryList);
+  res.send('ok');
+});
+
+export const subscriptions = onRequest(app);

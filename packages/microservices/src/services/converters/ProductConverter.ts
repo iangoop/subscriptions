@@ -1,3 +1,4 @@
+import { createConverter } from '@src/helpers/converters';
 import { IDBProduct, IProduct } from '@src/models/Product';
 import {
   DocumentData,
@@ -6,17 +7,15 @@ import {
   SnapshotOptions,
 } from 'firebase/firestore';
 
-export const productConverter: FirestoreDataConverter<IProduct> = {
-  toFirestore(product: IProduct): DocumentData {
-    return product;
-  },
-  fromFirestore(
-    snapshot: QueryDocumentSnapshot<IDBProduct>,
-    options: SnapshotOptions,
-  ): IProduct {
-    const data = snapshot.data(options);
-    data.isInStock = data.qtyInStock != undefined && data.qtyInStock > 0;
-    data.isOnSale = data.salePrice != undefined && data.salePrice < data.price;
-    return data as IProduct;
-  },
-};
+export const productConverter: FirestoreDataConverter<IProduct, IDBProduct> =
+  createConverter({
+    mapFromDb(partialAppModel, dbModel, snapshot) {
+      partialAppModel.isInStock =
+        partialAppModel.qtyInStock != undefined &&
+        partialAppModel.qtyInStock > 0;
+      partialAppModel.isOnSale =
+        partialAppModel.salePrice != undefined &&
+        partialAppModel.salePrice < partialAppModel.price;
+      return partialAppModel;
+    },
+  });

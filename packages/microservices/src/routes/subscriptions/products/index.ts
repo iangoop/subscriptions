@@ -1,11 +1,13 @@
-import { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
+import {
+  FastifyPluginAsyncTypebox,
+  TypeBoxTypeProvider,
+} from '@fastify/type-provider-typebox';
 import { Type } from '@sinclair/typebox';
 import { crudRest } from '@src/helpers/routes';
 import { IProduct, ProductSchema } from '@src/models/Product';
 import { productService } from '@src/services/ProductService';
 
 const addProductAddressSchema = Type.Pick(ProductSchema, [
-  'configProfileId',
   'sku',
   'name',
   'shortDescription',
@@ -30,7 +32,11 @@ const products: FastifyPluginAsyncTypebox = async (
   fastify,
   opts,
 ): Promise<void> => {
-  crudRest<IProduct>(fastify, productService(), addProductAddressSchema);
+  crudRest<IProduct>(
+    fastify.withTypeProvider<TypeBoxTypeProvider>(),
+    productService(),
+    addProductAddressSchema,
+  );
 
   return Promise.resolve();
 };

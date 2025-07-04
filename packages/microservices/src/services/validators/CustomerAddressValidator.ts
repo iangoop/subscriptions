@@ -1,5 +1,9 @@
 import { firestoreInstance } from '@src/configurations/firebase';
-import { validateDocInSubcollection } from '@src/helpers/dbfunctions';
+import {
+  docExists,
+  validateDoc,
+  validateDocInSubcollection,
+} from '@src/helpers/dbfunctions';
 import {
   createError,
   ErrorRecord,
@@ -67,5 +71,9 @@ export const customerAddressValidator: IValidator<ICustomerAddress> = {
 
     await validateCustomer(model, err);
     return processErrors(err);
+  },
+  async exists(model: Partial<ICustomerAddress>): Promise<boolean> {
+    const docSnapshot = await validateDoc(model.customerId, CustomerCollection);
+    return docExists(model.id, CustomerAddressCollection, docSnapshot.ref);
   },
 };

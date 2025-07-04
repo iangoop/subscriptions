@@ -1,9 +1,16 @@
 import { Static, TSchema, Type } from '@sinclair/typebox';
-import { FastifyInstance, FastifyReply } from 'fastify';
+import {
+  FastifyBaseLogger,
+  FastifyInstance,
+  FastifyReply,
+  RawServerDefault,
+} from 'fastify';
 import { Crud, Identified, Timestamped } from './dbfunctions';
 import { InvalidReferenceError } from './errors';
 import { Pagination, PaginationSchema } from './pagination';
 import { ValidationError } from './validators';
+import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import { IncomingMessage, ServerResponse } from 'http';
 
 export type ConvertQueryString<T, K> = (param: T) => K;
 
@@ -19,12 +26,20 @@ export type defaultQueryStringParam = Static<
   typeof defaultQueryStringParamSchema
 >;
 
+export type FastifyTypeboxInstance = FastifyInstance<
+  RawServerDefault,
+  IncomingMessage,
+  ServerResponse,
+  FastifyBaseLogger,
+  TypeBoxTypeProvider
+>;
+
 export const crudRest = <
   T extends Identified & Timestamped,
   QueryParamGetAll extends Pagination = Pagination,
   CustomQueryStringParam = defaultQueryStringParam,
 >(
-  fastify: FastifyInstance,
+  fastify: FastifyTypeboxInstance,
   service: Crud<T>,
   postSchema: TSchema,
   patchSchema: TSchema = postSchema,
@@ -91,7 +106,7 @@ export const unarchive = <
   T extends Identified & Timestamped,
   CustomQueryStringParam = defaultQueryStringParam,
 >(
-  fastify: FastifyInstance,
+  fastify: FastifyTypeboxInstance,
   service: Crud<T>,
   queryStringParamSchema: TSchema = defaultQueryStringParamSchema,
 ) => {

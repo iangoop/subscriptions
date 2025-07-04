@@ -1,16 +1,18 @@
-import * as admin from 'firebase-admin';
 import { DocumentReference, QuerySnapshot } from 'firebase-admin/firestore';
 import { QueryDocumentSnapshot } from 'firebase-functions/v1/firestore';
 import { isEqual, omit } from 'lodash';
+import { firestore } from '../../firestore';
 
 export type Customer = {
   firstName: string;
   lastName: string;
   email: string;
+  platformId: string;
   addressList: CustomerAddress[];
 };
 export type CustomerAddress = {
   customerId: string;
+  platformId: string;
   firstName: string;
   middleName: string | undefined;
   lastName: string;
@@ -34,8 +36,7 @@ export const exportCustomer = async (data: Customer[]) => {
   await Promise.all(
     data.map(async (item) => {
       const { addressList, ...customer } = item;
-      const querySnapshot = await admin
-        .firestore()
+      const querySnapshot = await firestore
         .collection('customers')
         .where('email', '==', item.email)
         .get();
@@ -46,18 +47,13 @@ export const exportCustomer = async (data: Customer[]) => {
         });
         await Promise.all(
           docs.map(async (doc) => {
-            await admin
-              .firestore()
-              .collection('customers')
-              .doc(doc.id)
-              .set(item);
+            await firestore.collection('customers').doc(doc.id).set(item);
 
             saveAddressList(doc.ref, addressList);
           }),
         );
       } else {
-        const customerRef = await admin
-          .firestore()
+        const customerRef = await firestore
           .collection('customers')
           .add(customer);
         saveAddressList(customerRef, addressList);

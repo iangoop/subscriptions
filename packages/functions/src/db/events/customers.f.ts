@@ -1,12 +1,16 @@
-import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
+import { onDocumentDeleted } from 'firebase-functions/firestore';
+import { firestore } from '../../firestore';
 
-export const onDeleteArchive = functions.firestore
-  .document('/customers/{documentId}')
-  .onDelete((snap) => {
-    return admin
-      .firestore()
-      .collection('customersDeleted')
-      .doc(snap.id)
-      .set(snap.data());
-  });
+export const onDeleteArchive = onDocumentDeleted(
+  '/customers/{documentId}',
+  async (event) => {
+    const snap = event.data;
+    if (snap) {
+      return firestore
+        .collection('customersDeleted')
+        .doc(snap.id)
+        .set(snap.data());
+    }
+    return null;
+  },
+);

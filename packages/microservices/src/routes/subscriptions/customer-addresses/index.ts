@@ -1,5 +1,8 @@
 import { Static, Type } from '@sinclair/typebox';
-import { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
+import {
+  FastifyPluginAsyncTypebox,
+  TypeBoxTypeProvider,
+} from '@fastify/type-provider-typebox';
 import { customerAddressService } from '@src/services/CustomerAddressService';
 import {
   CustomerAddressSchema,
@@ -54,7 +57,7 @@ const customerAddressess: FastifyPluginAsyncTypebox = async (
 ): Promise<void> => {
   const service = customerAddressService();
   crudRest<ICustomerAddress, QueryFilter, CustomerIdQueryString>(
-    fastify,
+    fastify.withTypeProvider<TypeBoxTypeProvider>(),
     service,
     addCustomerAddressSchema,
     addCustomerAddressSchema,
@@ -62,7 +65,7 @@ const customerAddressess: FastifyPluginAsyncTypebox = async (
     customerDependencyParamSchema,
   );
   unarchive<ICustomerAddress, CustomerIdQueryString>(
-    fastify,
+    fastify.withTypeProvider<TypeBoxTypeProvider>(),
     service,
     customerDependencyParamSchema,
   );

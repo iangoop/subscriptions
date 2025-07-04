@@ -1,5 +1,4 @@
 import { firestoreInstance } from '@src/configurations/firebase';
-import { format } from 'date-fns';
 import {
   DocumentSnapshot,
   doc,
@@ -29,6 +28,7 @@ import {
   PaginationQuery,
 } from './pagination';
 import { IValidator, ValidationError } from './validators';
+import { getFormattedTime } from './util';
 
 export type Timestamped = {
   updated: string;
@@ -46,10 +46,6 @@ export type IsActive = {
 export type Referenced<T extends string> = {
   [P in T]: string;
 };
-
-function getFormattedTime() {
-  return format(new Date(), "yyyy-MM-dd'T'HH:mm:ss'Z'");
-}
 
 export function setUpdated(document: Timestamped) {
   document.updated = getFormattedTime();
@@ -83,18 +79,34 @@ export const fromDoc = <T extends Identified>(
   throw new InvalidReferenceError(createError('doc004'));
 };
 
+export const docExists = async (
+  id: string | undefined,
+  collectionName: string,
+  parent?: DocumentReference,
+): Promise<boolean> => {
+  if (!id) {
+    throw new ValidationError(createError('doc002'));
+  }
+  let docRef = parent
+    ? doc(collection(parent, collectionName), id)
+    : doc(firestoreInstance, collectionName, id);
+
+  const docSnapshot = await getDoc(docRef);
+  return docSnapshot.exists();
+};
+
 export const validateDoc = async <T = DocumentData>(
-  id: string,
-  collection: string | CollectionReference,
+  id: string | undefined,
+  collectionName: string | CollectionReference,
   converter?: FirestoreDataConverter<T>,
 ): Promise<QueryDocumentSnapshot<T>> => {
   if (!id) {
     throw new ValidationError(createError('doc002'));
   }
   let docRef = (
-    collection instanceof CollectionReference
-      ? doc(collection, id)
-      : doc(firestoreInstance, collection, id)
+    collectionName instanceof CollectionReference
+      ? doc(collectionName, id)
+      : doc(firestoreInstance, collectionName, id)
   ) as DocumentReference<T>;
   if (converter) {
     docRef = docRef.withConverter(converter);
@@ -229,7 +241,7 @@ export class Crud<T extends Identified & Timestamped> {
   async create(model: T): Promise<T> {
     await this.prepareCreate(model);
     const docRef = await addDoc(this.getCollectionReference(), model);
-    return fromDoc(await getDoc(docRef));
+    return fromDoc<T>(await getDoc(docRef));
   }
 
   async prepareUpdate(id: string, model: T): Promise<boolean> {
@@ -246,7 +258,7 @@ export class Crud<T extends Identified & Timestamped> {
     await this.prepareUpdate(id, model);
     const docRef = this.getDocRefById(id);
     await updateDoc(docRef, model as UpdateData<T>);
-    return fromDoc(await getDoc(docRef));
+    return fromDoc<T>(await getDoc(docRef));
   }
 
   async delete(queryId: Identified): Promise<T> {
@@ -378,8 +390,8 @@ export class CrudSubcollection<
     const parentRef = this.getParentReference(parentKey);
     const subcollectionRef = this.getSubcollectionReference(parentRef);
 
-    const docRef = await addDoc(subcollectionRef, toPersist as T);
-    const docSnapshot = await getDoc(docRef);
+    const docRef = await addDoc(subcollectionRef, toPersist);
+    const docSnapshot = await getDoc(docRef.withConverter(this.converter));
     return fromDoc(docSnapshot);
   }
 
@@ -389,7 +401,7 @@ export class CrudSubcollection<
 
     const parentRef = this.getParentReference(parentKey);
     const subcollectionRef = this.getSubcollectionReference(parentRef);
-    const docRef = doc(subcollectionRef, id);
+    const docRef = doc(subcollectionRef, id).withConverter(this.converter);
     await updateDoc(docRef, toPersist);
     return fromDoc(await getDoc(docRef));
   }

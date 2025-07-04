@@ -12,13 +12,20 @@
   "license": "ISC",
   "scripts": {
     "dev": "concurrently --kill-others \"npm run dev -w @subscriptions/microservices\" \"npm run dev -w @subscriptions/pilot\"",
-    "emulators": "dotenvx run -f env/development.env -f packages/microservices/env/development.env -- firebase emulators:start",
+    "emulators": "dotenvx run -f env/development.env -f packages/microservices/env/development.env -- firebase emulators:start --project fir-f51cb",
     "build:pilot": "npm run build -w @subscriptions/pilot",
     "build:microservices": "npm run build -w @subscriptions/microservices",
-    "build:pilot:dev": "dotenvx run -f packages/pilot/env/development.env -- npm run build -w @subscriptions/pilot"
+    "build:pilot:dev": "dotenvx run -f packages/pilot/env/development.env -- npm run build -w @subscriptions/pilot",
+    "build:functions": "npm run build -w @subscriptions/functions",
+    "test": "dotenvx run -f env/test.env -- jest --config ./jest.config.js",
+    "test:database": "dotenvx run -f env/test.env -- jest --config ./jest.db.config.js"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "^1.5.0",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@types/jest": "^29.5.14",
     "@types/node": "^20.11.5",
     "@typescript-eslint/eslint-plugin": "^6.19.1",
     "@typescript-eslint/parser": "^6.19.1",
@@ -30,13 +37,17 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^5.0.0",
     "eslint-plugin-promise": "^6.1.1",
+    "firebase-functions-test": "^3.4.1",
     "husky": "^8.0.3",
+    "jest": "^29.7.0",
     "lint-staged": "^13.1.0",
     "nodemon": "^2.0.20",
     "prettier": "^3.2.4",
+    "ts-jest": "^29.3.4",
     "ts-node": "^10.9.1",
     "tsc-alias": "^1.8.10",
     "tsconfig-paths": "^4.1.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "wait-for-expect": "^3.0.2"
   }
 }

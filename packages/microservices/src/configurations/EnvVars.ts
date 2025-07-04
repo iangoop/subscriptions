@@ -3,6 +3,7 @@
 export default {
   nodeEnv: process.env.NODE_ENV ?? '',
   port: process.env.PORT ?? 0,
+  functionsUrl: process.env.FUNCTIONS_URL ?? '',
   firebase: {
     apiKey: process.env.CUSTOM_FIREBASE_APIKEY ?? '',
     authDomain: process.env.CUSTOM_FIREBASE_AUTHDOMAIN ?? '',
@@ -11,5 +12,6 @@ export default {
     messagingSenderId: process.env.CUSTOM_FIREBASE_MESSAGINGSENDERID ?? '',
     appId: process.env.CUSTOM_FIREBASE_APPID ?? '',
     measurementId: process.env.CUSTOM_FIREBASE_MEASUREMENTID ?? '',
+    region: process.env.CUSTOM_FIREBASE_REGION ?? '',
   },
 } as const;

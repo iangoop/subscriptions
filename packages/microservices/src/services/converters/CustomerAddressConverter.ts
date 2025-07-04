@@ -1,25 +1,21 @@
-import {
-  DocumentData,
-  FirestoreDataConverter,
-  QueryDocumentSnapshot,
-  SnapshotOptions,
-} from 'firebase/firestore';
+import { FirestoreDataConverter } from 'firebase/firestore';
 import {
   ICustomerAddress,
   IDBCustomerAddress,
 } from '@src/models/CustomerAddress';
+import { createConverter } from '@src/helpers/converters';
 
-export const customerAddressConverter: FirestoreDataConverter<ICustomerAddress> =
-  {
-    toFirestore(customer: ICustomerAddress): DocumentData {
-      const document = Object.assign({}, customer) as DocumentData;
-      return document;
-    },
-    fromFirestore(
-      snapshot: QueryDocumentSnapshot<IDBCustomerAddress>,
-      options: SnapshotOptions,
-    ): ICustomerAddress {
-      const data = snapshot.data(options);
-      return data as ICustomerAddress;
-    },
-  };
+export const customerAddressConverter: FirestoreDataConverter<
+  ICustomerAddress,
+  IDBCustomerAddress
+> = createConverter({
+  mapToDb(partialDbModel, fullAppModel) {
+    const { customerId, ...rest } = partialDbModel as ICustomerAddress;
+    return rest;
+  },
+  mapFromDb(partialAppModel, dbModel, snapshot) {
+    const customerId = snapshot.ref.parent.parent?.id;
+    partialAppModel.customerId = customerId || '';
+    return partialAppModel;
+  },
+});

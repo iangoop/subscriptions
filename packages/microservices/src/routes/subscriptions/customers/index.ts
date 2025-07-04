@@ -1,5 +1,8 @@
 import { Type } from '@sinclair/typebox';
-import { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
+import {
+  FastifyPluginAsyncTypebox,
+  TypeBoxTypeProvider,
+} from '@fastify/type-provider-typebox';
 import { customerService } from '@src/services/CustomerService';
 import { CustomerSchema, ICustomer } from '@src/models/Customer';
 import { crudRest } from '@src/helpers/routes';
@@ -21,7 +24,7 @@ const customers: FastifyPluginAsyncTypebox = async (
   opts,
 ): Promise<void> => {
   crudRest<ICustomer>(
-    fastify,
+    fastify.withTypeProvider<TypeBoxTypeProvider>(),
     customerService(),
     addCustomerSchema,
     updateCustomerSchema,

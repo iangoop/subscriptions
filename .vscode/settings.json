@@ -15,6 +15,7 @@
     {
       "mode": "auto"
     }
-  ] // required to format on save
+  ],
+  "eslint.enable": false // required to format on save
   //"files.autoSave": "onFocusChange" // optional but recommended
 }

@@ -1,5 +1,5 @@
 import { firestoreInstance } from '@src/configurations/firebase';
-import { validateDoc } from '@src/helpers/dbfunctions';
+import { docExists, validateDoc } from '@src/helpers/dbfunctions';
 import {
   IValidation,
   IValidator,
@@ -32,7 +32,7 @@ async function getDocSnapshotByEmail(customer: ICustomer) {
 
 async function validateEmail(
   customer: ICustomer,
-  err: Record<string, string>[],
+  err: ErrorRecord[],
   id?: string,
 ): Promise<void> {
   const snapshot = await getDocSnapshotByEmail(customer);
@@ -73,5 +73,9 @@ export const customerValidator: IValidator<ICustomer> = {
       await validateEmail(model, err);
     }
     return processErrors(err);
+  },
+
+  async exists(model: Partial<ICustomer>): Promise<boolean> {
+    return await docExists(model.id, CustomerCollection);
   },
 };

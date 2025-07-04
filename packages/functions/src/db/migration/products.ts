@@ -1,11 +1,10 @@
-import * as admin from 'firebase-admin';
 import { QueryDocumentSnapshot } from 'firebase-functions/v1/firestore';
+import { firestore } from '../../firestore';
 
 export const exportProduct = async (data: Record<string, string>[]) => {
   await Promise.all(
     data.map(async (product) => {
-      const querySnapshot = await admin
-        .firestore()
+      const querySnapshot = await firestore
         .collection('products')
         .where('sku', '==', product.sku)
         .get();
@@ -16,15 +15,11 @@ export const exportProduct = async (data: Record<string, string>[]) => {
         });
         await Promise.all(
           docs.map(async (doc) => {
-            await admin
-              .firestore()
-              .collection('products')
-              .doc(doc.id)
-              .set(product);
+            await firestore.collection('products').doc(doc.id).set(product);
           }),
         );
       } else {
-        admin.firestore().collection('products').add(product);
+        firestore.collection('products').add(product);
       }
     }),
   );
