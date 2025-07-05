@@ -42,8 +42,16 @@ export const processDayDeliveries = onSchedule('every day 06:00', async () => {
   }
 });
 
+type PaymentWebhookRequest = {
+  deliveryId: string;
+  paymentCode: string;
+  status: 'success' | 'failed';
+  errorCode?: string;
+};
+
 export const handlePaymentWebhook = onRequest(async (request, response) => {
-  const { deliveryId, paymentCode, status, errorCode } = request.body;
+  const { deliveryId, paymentCode, status, errorCode } =
+    request.body as PaymentWebhookRequest;
   if (status === 'success') {
     await updateDelivery(deliveryId, {
       status: DeliveryStatus.Processing,
@@ -53,7 +61,7 @@ export const handlePaymentWebhook = onRequest(async (request, response) => {
     if (delivery) {
       const paymentInfo = delivery.paymentInfo;
       paymentInfo.forEach((info) => {
-        if (info === paymentCode) {
+        if (info.paymentCode === paymentCode) {
           info.attemptCount = info.attemptCount ? info.attemptCount + 1 : 1;
           info.errorCode = errorCode;
         }

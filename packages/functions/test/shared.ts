@@ -10,6 +10,8 @@ import {
   processDelivery,
   processSubscriptionTransaction,
 } from '../src/db/events/subscriptions.f';
+import { DocumentSnapshot, WriteResult } from 'firebase-admin/firestore';
+import { Change } from 'firebase-functions/core';
 
 export const BASE_DATE = '2025-06-07';
 export enum SampleIds {
@@ -22,6 +24,7 @@ export enum SampleIds {
   address1Id = 'addr_001',
   address2Id = 'addr_002',
   address3Id = 'addr_003',
+  address4Id = 'addr_004',
   product1Id = 'prod_001',
   product2Id = 'prod_002',
   product3Id = 'prod_003',
@@ -38,17 +41,17 @@ export const fft = testEnv({
 export const makeDocumentSnapshot = (
   id: string,
   path: string,
-  beforeData: any,
-  afterData: any,
+  beforeData: Record<string, unknown>,
+  afterData: Record<string, unknown>,
 ) => {
   const beforeSnap = fft.firestore.makeDocumentSnapshot(
     beforeData,
     `${path}/${id}`,
-  );
+  ) as DocumentSnapshot;
   const afterSnap = fft.firestore.makeDocumentSnapshot(
     afterData,
     `${path}/${id}`,
-  );
+  ) as DocumentSnapshot;
 
   return {
     before: beforeSnap,
@@ -67,7 +70,7 @@ export async function processSubscriptionEvent(
     before ? before : {},
     data,
   );
-  return processSubscriptionTransaction(event as any);
+  return processSubscriptionTransaction(event as Change<DocumentSnapshot>);
 }
 
 export async function processDeliveryEvent(
@@ -81,7 +84,7 @@ export async function processDeliveryEvent(
     before ? before : {},
     data,
   );
-  return processDelivery(event as any);
+  return processDelivery(event as Change<DocumentSnapshot>);
 }
 
 export function makeSubData(
@@ -107,7 +110,7 @@ export function makeDeliveryData(
     id: SampleIds.delivery1Id,
     customerId: SampleIds.customer1Id,
     shippingAddressId: SampleIds.address1Id,
-    status: 'A',
+    status: subscriptionsFns.DeliveryStatus.Active,
     paymentInfo: [],
     ...overrides,
   };
@@ -143,10 +146,12 @@ export function mockDeliveryDbActions(
     .spyOn(subscriptionsFns, 'getNextActiveDeliveriesForCustomer')
     .mockImplementation(
       async (customerId: string, shippingAddressId?: string) => {
-        return getNextActiveDeliveriesForCustomer(
-          deliveries,
-          customerId,
-          shippingAddressId,
+        return Promise.resolve(
+          getNextActiveDeliveriesForCustomer(
+            deliveries,
+            customerId,
+            shippingAddressId,
+          ),
         );
       },
     );
@@ -155,27 +160,29 @@ export function mockDeliveryDbActions(
     .spyOn(subscriptionsFns, 'getActiveSubscriptions')
     .mockImplementation(
       async (customerId: string, shippingAddressId?: string) => {
-        return subscriptions.filter((subscription) => {
-          return (
-            subscription.customerId === customerId &&
-            (shippingAddressId === undefined ||
-              subscription.shippingAddressId === shippingAddressId) &&
-            subscription.status === 'A'
-          );
-        });
+        return Promise.resolve(
+          subscriptions.filter((subscription) => {
+            return (
+              subscription.customerId === customerId &&
+              (shippingAddressId === undefined ||
+                subscription.shippingAddressId === shippingAddressId) &&
+              subscription.status === subscriptionsFns.SubscriptionStatus.Active
+            );
+          }),
+        );
       },
     );
 
   const update = jest
     .spyOn(subscriptionsFns, 'updateDelivery')
     .mockImplementation(
-      async (deliveryId: string, data: Partial<SubscriptionDb>) => {
+      async (deliveryId: string, data: Partial<DeliveryDb>) => {
         deliveries[parseInt(deliveryId) - 1] = Object.assign(
           {},
           deliveries[parseInt(deliveryId) - 1],
           data,
         );
-        return {} as any;
+        return Promise.resolve({} as WriteResult);
       },
     );
 
@@ -187,23 +194,27 @@ export function mockDeliveryDbActions(
         delivery,
       );
       deliveries.push(newDelivery);
-      return newDelivery.id;
+      return Promise.resolve(newDelivery.id);
     });
 
   const getSubscriptions = jest
     .spyOn(subscriptionsFns, 'getSubscriptions')
     .mockImplementation(async (subscriptionsIds: string[]) => {
-      return subscriptions.filter((subscription) => {
-        return subscriptionsIds.includes(subscription.id);
-      });
+      return Promise.resolve(
+        subscriptions.filter((subscription) => {
+          return subscriptionsIds.includes(subscription.id);
+        }),
+      );
     });
 
   const getSubscription = jest
     .spyOn(subscriptionsFns, 'getSubscription')
     .mockImplementation(async (subscriptionsId: string) => {
-      return subscriptions.find((subscription) => {
-        return subscriptionsId === subscription.id;
-      });
+      return Promise.resolve(
+        subscriptions.find((subscription) => {
+          return subscriptionsId === subscription.id;
+        }),
+      );
     });
 
   const updateSubscription = jest
@@ -214,7 +225,7 @@ export function mockDeliveryDbActions(
           return subscription.id === subscriptionId;
         });
         Object.assign(subscription!, update);
-        return {} as any;
+        return Promise.resolve({} as WriteResult);
       },
     );
 
@@ -247,7 +258,7 @@ export function mockDeliveryDbActions(
             customerId: subscriptionData.customerId,
             shippingAddressId: subscriptionData.shippingAddressId,
             nextOrderDate: subscriptionData.nextOrderDate,
-            status: 'A',
+            status: subscriptionsFns.DeliveryStatus.Active,
             paymentInfo: [
               {
                 paymentCode: subscriptionData.paymentCode,
@@ -257,6 +268,7 @@ export function mockDeliveryDbActions(
           };
           deliveries.push(newDelivery);
         }
+        return Promise.resolve();
       },
     );
   const removeSubscriptionFromDelivery = jest
@@ -268,6 +280,7 @@ export function mockDeliveryDbActions(
           (id) => id !== subscriptionId,
         );
       });
+      return Promise.resolve();
     });
 
   return {

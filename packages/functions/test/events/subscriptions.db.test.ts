@@ -1,4 +1,3 @@
-import testEnv from 'firebase-functions-test';
 import { DocumentReference } from 'firebase-admin/firestore';
 import { firestore } from '../../src/firestore';
 import {
@@ -8,6 +7,7 @@ import {
   DeliveryStatus,
   getNextActiveDeliveriesForCustomer,
   SubscriptionDb,
+  SubscriptionStatus,
   updateDelivery,
 } from '../../src/db/subscriptions';
 import { addDays, format, parse, startOfDay } from 'date-fns';
@@ -25,7 +25,6 @@ const customer1Id = 'cust_001';
 const customer2Id = 'cust_002';
 const address1Id = 'addr_001';
 const address2Id = 'addr_002';
-const address3Id = 'addr_003';
 const customer2Address1Id = 'addr_004';
 const product1Id = 'prod_001';
 const product2Id = 'prod_002';
@@ -34,7 +33,6 @@ const product4Id = 'prod_004';
 const delivery1Id = 'del_001';
 const delivery2Id = 'del_002';
 const delivery3Id = 'del_003';
-const delivery4Id = 'del_004';
 
 const customerSample = {
   email: 'cameron11@allen.com',
@@ -70,28 +68,6 @@ const customer1AddressSample1 = {
   updated: '2023-09-16T17:57:59',
   isActive: true,
   platformId: 'K1WS2UHU',
-};
-
-const customer1AddressSample2 = {
-  firstName: 'Naomi',
-  middleName: '',
-  lastName: 'Parker',
-  company: 'Smith, Cook and Davies',
-  street1: 'Union Street',
-  street2: '',
-  street3: '',
-  city: 'Aberdeen',
-  region: 'Aberdeen City',
-  postcode: 'AB10 1AB',
-  country: 'United Kingdom',
-  phone: '0115 496 0625',
-  isDefault: false,
-  isDefaultBilling: true,
-  isDefaultShipping: false,
-  created: '2023-09-16T17:57:59',
-  updated: '2023-09-16T17:57:59',
-  isActive: true,
-  platformId: 'HM1ZTK8J',
 };
 
 const customer2AddressSample1 = {
@@ -170,40 +146,22 @@ const productSample3 = {
   isDiscountPercentage: false,
 };
 
-const productSample4 = {
-  sku: 'PROD-004',
-  name: 'Sample Product 4',
-  shortDescription: 'This is a sample product.',
-  longDescription: 'This is a longer description of the sample product.',
-  thumbnailUrl: 'http://example.com/sample4.jpg',
-  msrp: 100,
-  price: 80,
-  salePrice: null,
-  isOnSale: false,
-  minQty: 1,
-  maxQty: 10,
-  qtyInStock: 100,
-  isInStock: true,
-  discount: null,
-  isDiscountPercentage: false,
-};
-
 describe('onSubscriptionWrittenDatabase', () => {
-  let customer1Ref: DocumentReference = {} as any;
-  let customer1address1Ref: DocumentReference = {} as any;
-  let customer1address2Ref: DocumentReference = {} as any;
-  let customer2Ref: DocumentReference = {} as any;
-  let customer2address1Ref: DocumentReference = {} as any;
-  let product1Ref: DocumentReference = {} as any;
-  let product2Ref: DocumentReference = {} as any;
-  let product3Ref: DocumentReference = {} as any;
-  let product4Ref: DocumentReference = {} as any;
+  let customer1Ref: DocumentReference = {} as DocumentReference;
+  let customer1address1Ref: DocumentReference = {} as DocumentReference;
+  let customer1address2Ref: DocumentReference = {} as DocumentReference;
+  let customer2Ref: DocumentReference = {} as DocumentReference;
+  let customer2address1Ref: DocumentReference = {} as DocumentReference;
+  let product1Ref: DocumentReference = {} as DocumentReference;
+  let product2Ref: DocumentReference = {} as DocumentReference;
+  let product3Ref: DocumentReference = {} as DocumentReference;
+  let product4Ref: DocumentReference = {} as DocumentReference;
 
   function makeDeliveryData(overrides: Partial<DeliveryDb> = {}): DeliveryDb {
     return {
       customerId: customer1Ref.id,
       shippingAddressId: customer1address1Ref.id,
-      status: 'A',
+      status: DeliveryStatus.Active,
       paymentInfo: [],
       ...overrides,
     };
@@ -219,7 +177,7 @@ describe('onSubscriptionWrittenDatabase', () => {
       productId: product1Ref.id,
       quantity: 1,
       schedule: '1M',
-      status: 'A',
+      status: SubscriptionStatus.Active,
       shippingMethodCode: 'nextday',
       ...overrides,
     } as SubscriptionDb;
@@ -350,7 +308,6 @@ describe('onSubscriptionWrittenDatabase', () => {
   it('should return active delivieries from particular address', async () => {
     const delivery1Ref = firestore.collection('deliveries').doc(delivery1Id);
     const delivery1Data = makeDeliveryData({
-      status: 'A',
       nextOrderDate: '2025-06-15',
     });
 

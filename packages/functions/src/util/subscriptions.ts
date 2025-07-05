@@ -64,7 +64,7 @@ export const getNextScheduledDate = (date: Date, schedule: string): Date => {
     throw new Error('Invalid schedule format');
   }
 
-  const [_, numStr, type] = match;
+  const [, numStr, type] = match;
   const num = parseInt(numStr);
 
   if (type === 'W') {
@@ -91,7 +91,7 @@ export const getPreviousScheduledDate = (
     throw new Error('Invalid schedule format');
   }
 
-  const [_, numStr, type] = match;
+  const [, numStr, type] = match;
   const num = parseInt(numStr);
 
   if (type === 'W') {

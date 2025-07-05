@@ -26,7 +26,11 @@ export function validateWithMessages<T extends TSchema>(
   const errors = (validate.errors || []).map((err: ErrorObject) => {
     const key =
       err.instancePath.replace(/^\//, '') ||
-      err.params?.missingProperty ||
+      (err.params &&
+      typeof err.params === 'object' &&
+      'missingProperty' in err.params
+        ? (err.params as { missingProperty?: string }).missingProperty
+        : undefined) ||
       'field';
     return (
       (messages as Record<string, string>)[key] || `Invalid value for "${key}".`

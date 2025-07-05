@@ -30,7 +30,7 @@
     "node/no-extraneous-import": [
       "error",
       {
-        "allowModules": ["pino"]
+        "allowModules": ["pino", "firebase-functions-test", "wait-for-expect"]
       }
     ],
     "@typescript-eslint/no-unused-vars": [
@@ -38,6 +38,7 @@
       { "vars": "all", "args": "none", "ignoreRestSiblings": true }
     ]
   },
+  "ignorePatterns": ["lib/*", "node_modules/*"],
   "settings": {
     "node": {
       "tryExtensions": [".js", ".json", ".node", ".ts"]

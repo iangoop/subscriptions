@@ -16,13 +16,13 @@ import { addDays, addMonths, format } from 'date-fns';
 import { buildSubscriptionPlanning } from '../../src/requests/subscriptions.f';
 
 describe('onSubscriptionPlanning', () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.spyOn(admin, 'firestore').mockReturnThis();
     jest.setSystemTime(new Date(BASE_DATE + 'T00:00:00'));
     // Clear Firestore before each test
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     jest.restoreAllMocks();
   });
 
@@ -30,7 +30,7 @@ describe('onSubscriptionPlanning', () => {
     jest.useFakeTimers();
   });
 
-  afterAll(async () => {
+  afterAll(() => {
     jest.useRealTimers();
   });
 

@@ -14,7 +14,7 @@ export type Subscription = {
   shippingAddressId: OneOfId | undefined;
   billingAddressId: string;
   paymentMethodCode: string;
-  status: string;
+  status: SubscriptionStatus;
   schedule: string;
   scheduled: boolean;
   shippingMethodCode: string;
@@ -46,7 +46,7 @@ export type SubscriptionPlanning = {
 export type Delivery = {
   customerId: OneOfId;
   shippingAddressId: OneOfId | undefined;
-  status: string;
+  status: DeliveryStatus;
   paymentInfo: PaymentInfo[];
   created?: string;
   updated?: string;
@@ -211,7 +211,6 @@ export const createDeliveryIfNotExists = async (
   return await firestore.runTransaction(async (tx) => {
     const snap = await tx.get(deliveryRef);
     if (snap.exists) {
-      console.log(`Delivery already exists for ${deliveryId}`);
       return false;
     }
     const now = formatISO(Date.now());
@@ -351,7 +350,7 @@ export const removeFromActiveDeliveries = async (
       return Promise.all(
         deliveryData.paymentInfo
           .filter(
-            async (paymentInfo) =>
+            (paymentInfo) =>
               paymentInfo.paymentCode === subscription.paymentCode,
           )
           .map(async (paymentInfo) => {

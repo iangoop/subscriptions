@@ -18,6 +18,8 @@ import {
 import { getNextScheduledDate, strToDate } from '../util/subscriptions';
 import { groupBy } from 'lodash';
 import { app } from '../app';
+import { Request, Response } from 'express';
+
 const nextScheduleQuerySchema = Type.Object({
   date: Type.String({ format: 'date' }),
   schedule: Type.String({ pattern: '^\\d+[MW]$' }),
@@ -28,7 +30,7 @@ const custmerSubscriptionPlanningSchema = Type.Object({
   monthsToShow: Type.Optional(Type.Number({ default: 6 })),
 });
 
-export const nextScheduledDate = async (req: any, res: any) => {
+export const nextScheduledDate = (req: Request, res: Response) => {
   const result = validateWithMessages(nextScheduleQuerySchema, req.body, {
     date: 'Invalid "date" format. Expected ISO string like "2025-06-16T00:00:00Z".',
     schedule: 'Invalid "schedule". Use something like "1M" or "2W".',
@@ -123,7 +125,10 @@ export const buildSubscriptionPlanning = async (
   return planning;
 };
 
-export const getCustomerSubscriptionPlanning = async (req: any, res: any) => {
+export const getCustomerSubscriptionPlanning = async (
+  req: Request,
+  res: Response,
+) => {
   const result = validateWithMessages(
     custmerSubscriptionPlanningSchema,
     req.body,

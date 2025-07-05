@@ -19,9 +19,12 @@ import {
   DATE_FORMAT,
   DeliveryApp,
   DeliveryStatus,
+  SubscriptionStatus,
 } from '../../src/db/subscriptions';
 import { addWeeks, format, parse, startOfDay } from 'date-fns';
 import { getNextScheduledDate } from '../../src/util/subscriptions';
+import { Change } from 'firebase-functions/core';
+import { DocumentSnapshot } from 'firebase-admin/firestore';
 
 describe('onSubscriptionWrittenFunctions', () => {
   async function processDeliveryEvent(
@@ -35,16 +38,16 @@ describe('onSubscriptionWrittenFunctions', () => {
       before ? before : {},
       data,
     );
-    return processDelivery(event as any);
+    return processDelivery(event as unknown as Change<DocumentSnapshot>);
   }
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.spyOn(admin, 'firestore').mockReturnThis();
     jest.setSystemTime(new Date(BASE_DATE + 'T00:00:00'));
     // Clear Firestore before each test
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     jest.restoreAllMocks();
   });
 
@@ -52,7 +55,7 @@ describe('onSubscriptionWrittenFunctions', () => {
     jest.useFakeTimers();
   });
 
-  afterAll(async () => {
+  afterAll(() => {
     jest.useRealTimers();
     fft.cleanup();
   });
@@ -127,7 +130,7 @@ describe('onSubscriptionWrittenFunctions', () => {
     const subscription4Data = makeSubData({
       id: SampleIds.subscription4Id,
       productId: SampleIds.product4Id,
-      status: 'E',
+      status: SubscriptionStatus.Expired,
       expirationDate: '2025-05-15',
     });
 
@@ -488,12 +491,7 @@ describe('onSubscriptionWrittenFunctions', () => {
       expect.arrayContaining([SampleIds.subscription2Id]),
     );
 
-    let _subscription1Data,
-      _subscription2Data,
-      _subscription3Data,
-      _subscription4Data;
-
-    _subscription3Data = cloneDeep(subscription3Data);
+    const _subscription3Data = cloneDeep(subscription3Data);
     await processDeliveryEvent(
       orderedDeliveries[0].id,
       Object.assign(orderedDeliveries[0], {
@@ -521,9 +519,9 @@ describe('onSubscriptionWrittenFunctions', () => {
       ]),
     );
 
-    _subscription1Data = cloneDeep(subscription1Data);
-    _subscription3Data = cloneDeep(subscription3Data);
-    _subscription4Data = cloneDeep(subscription4Data);
+    const _subscription1Data = cloneDeep(subscription1Data);
+    const __subscription3Data = cloneDeep(subscription3Data);
+    const _subscription4Data = cloneDeep(subscription4Data);
     await processDeliveryEvent(
       orderedDeliveries[0].id,
       Object.assign(orderedDeliveries[0], {
@@ -538,7 +536,7 @@ describe('onSubscriptionWrittenFunctions', () => {
     await processSubscriptionEvent(
       SampleIds.subscription3Id,
       subscription3Data,
-      _subscription3Data,
+      __subscription3Data,
     );
     await processSubscriptionEvent(
       SampleIds.subscription4Id,
@@ -567,7 +565,7 @@ describe('onSubscriptionWrittenFunctions', () => {
     );
   });
 
-  it('should match delivery dates for week and month schedules', async () => {
+  it('should match delivery dates for week and month schedules', () => {
     const result1 = getNextScheduledDate(
       parse('2025-05-29', 'yyyy-MM-dd', new Date()),
       '1M',
@@ -580,7 +578,7 @@ describe('onSubscriptionWrittenFunctions', () => {
     expect(result1).toEqual(result3);
   });
 
-  it('should have 3 deliveries in a month', async () => {
+  it('should have 3 deliveries in a month', () => {
     const result1 = getNextScheduledDate(
       parse('2025-06-08', 'yyyy-MM-dd', new Date()),
       '1M',
@@ -593,7 +591,7 @@ describe('onSubscriptionWrittenFunctions', () => {
     expect(result1).toEqual(addWeeks(result3, 1));
   });
 
-  it('should shift a week', async () => {
+  it('should shift a week', () => {
     const result1 = getNextScheduledDate(
       parse('2025-03-31', 'yyyy-MM-dd', new Date()),
       '1W',
@@ -603,7 +601,7 @@ describe('onSubscriptionWrittenFunctions', () => {
     );
   });
 
-  it('should find earliest delivery date based on week', async () => {
+  it('should find earliest delivery date based on week', () => {
     jest.setSystemTime(new Date('2025-06-06T00:00:00Z'));
     const result = findEarliestSuitableDeliveryDate(
       parse('2025-06-27', 'yyyy-MM-dd', new Date()),

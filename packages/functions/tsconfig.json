@@ -12,5 +12,5 @@
     "composite": true
   },
   "compileOnSave": true,
-  "include": ["src", "src/requests"]
+  "include": ["src/*.ts", "src/**/*.ts", "test/*.ts", "test/**/*.ts"]
 }

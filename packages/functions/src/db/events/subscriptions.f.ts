@@ -221,24 +221,28 @@ export const processDelivery = async (change: Change<DocumentSnapshot>) => {
     const delivery = deliveryRef.data() as DeliveryDb;
     if (delivery.status === DeliveryStatus.Processing) {
       const orderDate = strToDate(delivery.nextOrderDate!);
-      delivery.paymentInfo.map(async (paymentInfo) => {
-        if (!paymentInfo.errorCode) {
-          paymentInfo.deliveries.map(async (subscriptionId) => {
-            const subscription = await getSubscription(subscriptionId);
-            if (subscription) {
-              const nextOrderDate = getNextScheduledDate(
-                orderDate,
-                subscription.schedule,
-              );
-              await updateSubscription(subscriptionId, {
-                nextOrderDate: dateToStr(nextOrderDate),
-                previousOrderDate: delivery.nextOrderDate,
-                scheduled: false,
-              });
-            }
-          });
-        }
-      });
+      await Promise.all(
+        delivery.paymentInfo.map(async (paymentInfo) => {
+          if (!paymentInfo.errorCode) {
+            await Promise.all(
+              paymentInfo.deliveries.map(async (subscriptionId) => {
+                const subscription = await getSubscription(subscriptionId);
+                if (subscription) {
+                  const nextOrderDate = getNextScheduledDate(
+                    orderDate,
+                    subscription.schedule,
+                  );
+                  await updateSubscription(subscriptionId, {
+                    nextOrderDate: dateToStr(nextOrderDate),
+                    previousOrderDate: delivery.nextOrderDate,
+                    scheduled: false,
+                  });
+                }
+              }),
+            );
+          }
+        }),
+      );
     }
   }
 };
@@ -247,7 +251,7 @@ export const onSubscriptionWritten = onDocumentWritten(
   'subscriptions/{subscriptionId}',
   async (event) => {
     if (event.data) {
-      processSubscriptionTransaction(event.data);
+      await processSubscriptionTransaction(event.data);
     }
   },
 );
@@ -256,7 +260,7 @@ export const onDeliveryWritten = onDocumentWritten(
   'deliveries/{deliveryId}',
   async (event) => {
     if (event.data) {
-      processDelivery(event.data);
+      await processDelivery(event.data);
     }
   },
 );
