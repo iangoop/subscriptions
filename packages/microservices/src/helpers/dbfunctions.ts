@@ -87,7 +87,7 @@ export const docExists = async (
   if (!id) {
     throw new ValidationError(createError('doc002'));
   }
-  let docRef = parent
+  const docRef = parent
     ? doc(collection(parent, collectionName), id)
     : doc(firestoreInstance, collectionName, id);
 

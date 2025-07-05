@@ -1,5 +1,5 @@
 import { Static, Type } from '@sinclair/typebox';
-import { DeliveryStatus, Schedule } from './Shared';
+import { DeliveryStatus } from './Shared';
 import { Identified, Timestamped } from '@src/helpers/dbfunctions';
 
 export const DeliveryCollection = 'deliveries';

@@ -33,6 +33,7 @@ jobs:
           echo CUSTOM_FIREBASE_MESSAGINGSENDERID=${{ vars.CUSTOM_FIREBASE_MESSAGINGSENDERID }} >> .env
           echo CUSTOM_FIREBASE_APPID=${{ vars.CUSTOM_FIREBASE_APPID }} >> .env
           echo CUSTOM_FIREBASE_MEASUREMENTID=${{ vars.CUSTOM_FIREBASE_MEASUREMENTID }} >> .env
+          echo CUSTOM_FIREBASE_REGION=${{ vars.CUSTOM_FIREBASE_REGION }} >> .env
           cat .env
 
       - name: Move .env to functions folders

@@ -1,11 +1,6 @@
 import { createConverter } from '@src/helpers/converters';
 import { IDBProduct, IProduct } from '@src/models/Product';
-import {
-  DocumentData,
-  FirestoreDataConverter,
-  QueryDocumentSnapshot,
-  SnapshotOptions,
-} from 'firebase/firestore';
+import { FirestoreDataConverter } from 'firebase/firestore';
 
 export const productConverter: FirestoreDataConverter<IProduct, IDBProduct> =
   createConverter({
