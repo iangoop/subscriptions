@@ -5,7 +5,7 @@ import { onRequest } from 'firebase-functions/v2/https';
 import { Customer, exportCustomer } from './db/migration/customers';
 import { exportSubscriptions } from './db/migration/subscriptions';
 import { SubscriptionPayload } from './db/subscriptions';
-import { app } from './app';
+import { app, covert } from './app';
 
 /** EXPORT ALL FUNCTIONS
  *
@@ -39,21 +39,22 @@ for (let f = 0, fl = files.length; f < fl; f++) {
   }
 }
 
-export const migrateProducts = onRequest(async (req, res) => {
+covert.post('/migrate/products', async (req, res) => {
   await exportProduct(req.body as Record<string, string>[]);
   res.send('ok');
 });
 
-export const migrateCustomer = onRequest(async (req, res) => {
+covert.post('/migrate/customers', async (req, res) => {
   const customerList = req.body as Customer[];
   await exportCustomer(customerList);
   res.send('ok');
 });
 
-export const migrateSubscriptions = onRequest(async (req, res) => {
+covert.post('/migrate/subscriptions', async (req, res) => {
   const deliveryList = req.body as SubscriptionPayload;
   await exportSubscriptions(deliveryList);
   res.send('ok');
 });
 
+export const management = onRequest(covert);
 export const subscriptions = onRequest(app);
