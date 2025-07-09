@@ -12,9 +12,6 @@ jobs:
     steps:
       - uses: 'actions/checkout@v4'
 
-      - name: Create SA key
-        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_FUNCTIONS }}' > gcloud.json
-
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
@@ -45,7 +42,10 @@ jobs:
           cp .env packages/microservices
           rm .env
 
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_FUNCTIONS }}'
+
       - name: Deploy to Firebase
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: gcloud.json
         run: firebase deploy --only functions

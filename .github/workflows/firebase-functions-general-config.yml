@@ -1,0 +1,35 @@
+# using gcloud cli to run config commands not available via terraform
+name: GCP configuration related to functions
+
+on:
+  workflow_dispatch: # Allows manual trigger from the GitHub UI
+
+jobs:
+  cleanup-policy:
+    name: Set Cleanup Policy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo (required by Actions)
+        uses: actions/checkout@v3
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_FUNCTIONS }}'
+
+      - name: Install latest gcloud SDK
+        run: |
+          curl -sSL https://sdk.cloud.google.com | bash > /dev/null
+          echo "$HOME/google-cloud-sdk/bin" >> $GITHUB_PATH
+          source "$HOME/google-cloud-sdk/path.bash.inc"
+          gcloud components update --quiet
+
+      - name: Set cleanup policy
+        env:
+          CLOUDSDK_CORE_PROJECT: ${{ vars.CUSTOM_FIREBASE_PROJECTID }}
+        run: |
+          gcloud artifacts repositories update gcf-artifacts \
+            --location=us-central1 \
+            --clear-cleanup-policies \
+            --add-cleanup-policy=action=DELETE,type=UNTAGGED,condition=AGE>30d
