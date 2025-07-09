@@ -69,4 +69,8 @@ node_modules/
 env/*
 !env/base.env
 
+terraform/.terraform/
+terraform/terraform.tfstate*
+terraform/*.auto.tfvars
+
 firebase-tools-instant-*

@@ -19,5 +19,5 @@ Test GitHub actions locally
 4. Testing workflows
     - Check [this article](https://www.freecodecamp.org/news/how-to-run-github-actions-locally/) for different use cases
     - Example for testing only the job build_and_deploy_functions: 
-        - `act --job build_and_deploy_functions --var-file .vars`
+        - `act --job build_and_deploy_functions --var-file .vars --secret-file .secrets`
         - `act --job build_and_deploy --var-file .vars --secret-file .secrets`
