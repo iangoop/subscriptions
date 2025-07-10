@@ -1,0 +1,38 @@
+[
+  {
+    "name": "delete-prerelease",
+    "action": {
+      "type": "Delete"
+    },
+    "condition": {
+      "tagState": "any",
+      "olderThan": "5d"
+    }
+  },
+  {
+    "name": "keep-tagged-release",
+    "action": { "type": "Keep" },
+    "condition": {
+      "tagState": "any",
+      "tagPrefixes": ["prod"],
+      "packageNamePrefixes": ["web", "mobile"]
+    }
+  },
+  {
+    "name": "keep-latest-release",
+    "action": { "type": "Keep" },
+    "condition": {
+      "tagState": "any",
+      "tagPrefixes": ["latest"]
+    }
+  },
+  {
+    "name": "keep-minimum-versions",
+    "action": {
+      "type": "Keep"
+    },
+    "mostRecentVersions": {
+      "keepCount": 5
+    }
+  }
+]

@@ -18,18 +18,15 @@ jobs:
         with:
           credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_FUNCTIONS }}'
 
-      - name: Install latest gcloud SDK
-        run: |
-          curl -sSL https://sdk.cloud.google.com | bash > /dev/null
-          echo "$HOME/google-cloud-sdk/bin" >> $GITHUB_PATH
-          source "$HOME/google-cloud-sdk/path.bash.inc"
-          gcloud components update --quiet
+      - name: Install gcloud CLI
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          version: 'latest'
 
       - name: Set cleanup policy
-        env:
-          CLOUDSDK_CORE_PROJECT: ${{ vars.CUSTOM_FIREBASE_PROJECTID }}
         run: |
-          gcloud artifacts repositories update gcf-artifacts \
-            --location=us-central1 \
-            --clear-cleanup-policies \
-            --add-cleanup-policy=action=DELETE,type=UNTAGGED,condition=AGE>30d
+          gcloud artifacts repositories set-cleanup-policies gcf-artifacts \
+            --project=${{ vars.CUSTOM_FIREBASE_PROJECTID }} \
+            --location=${{ vars.CUSTOM_FIREBASE_REGION }} \
+            --policy=artifact-registry-policy.json \
+            --no-dry-run
