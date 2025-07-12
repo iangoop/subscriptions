@@ -2,8 +2,8 @@
 
 export default {
   nodeEnv: process.env.NODE_ENV ?? '',
-  port: process.env.PORT ?? 0,
-  functionsUrl: process.env.FUNCTIONS_URL ?? '',
+  port: process.env.MICROSERVICES_PORT ?? 0,
+  functionsApiUrl: process.env.FUNCTIONS_API_URL ?? '',
   firebase: {
     apiKey: process.env.CUSTOM_FIREBASE_APIKEY ?? '',
     authDomain: process.env.CUSTOM_FIREBASE_AUTHDOMAIN ?? '',

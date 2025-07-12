@@ -28,8 +28,8 @@
     "yup": "^1.4.0"
   },
   "scripts": {
-    "dev": "dotenvx run -f env/development.env -- craco start",
-    "dev:build": "dotenvx run -f env/development.env -- craco build",
+    "dev": "dotenvx run -f ../../.secrets -f ../../.vars -- craco start",
+    "dev:build": "dotenvx run -f ../../.secrets -f ../../.vars -- craco build",
     "start": "craco start",
     "build": "craco build",
     "test": "craco test",

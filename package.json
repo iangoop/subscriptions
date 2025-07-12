@@ -12,10 +12,10 @@
   "license": "ISC",
   "scripts": {
     "dev": "concurrently --kill-others \"npm run dev -w @subscriptions/microservices\" \"npm run dev -w @subscriptions/pilot\"",
-    "emulators": "dotenvx run -f env/development.env -f packages/microservices/env/development.env -- firebase emulators:start --project fir-f51cb",
+    "emulators": "dotenvx run -f .secrets -f .vars -- firebase emulators:start --project fir-f51cb",
     "build:pilot": "npm run build -w @subscriptions/pilot",
     "build:microservices": "npm run build -w @subscriptions/microservices",
-    "build:pilot:dev": "dotenvx run -f packages/pilot/env/development.env -- npm run build -w @subscriptions/pilot",
+    "build:pilot:dev": "dotenvx run -f .secrets -f .vars -- npm run build -w @subscriptions/pilot",
     "build:functions": "npm run build -w @subscriptions/functions",
     "test": "dotenvx run -f env/test.env -- jest --config ./jest.config.js",
     "test:database": "dotenvx run -f env/test.env -- jest --config ./jest.db.config.js"
