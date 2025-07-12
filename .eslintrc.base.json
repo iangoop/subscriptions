@@ -38,7 +38,7 @@
       { "vars": "all", "args": "none", "ignoreRestSiblings": true }
     ]
   },
-  "ignorePatterns": ["lib/*", "node_modules/*"],
+  "ignorePatterns": ["lib/*", "node_modules/*", "craco.config.js"],
   "settings": {
     "node": {
       "tryExtensions": [".js", ".json", ".node", ".ts"]
