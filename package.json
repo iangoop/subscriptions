@@ -11,7 +11,8 @@
   "author": "",
   "license": "ISC",
   "scripts": {
-    "dev": "concurrently --kill-others \"npm run dev -w @subscriptions/microservices\" \"npm run dev -w @subscriptions/pilot\"",
+    "dev": "concurrently --kill-others \"npm run build:watch -w @subscriptions/microservices\" \"npm run dev -w @subscriptions/pilot\"",
+    "dev:decouple:microservices": "concurrently --kill-others \"npm run dev -w @subscriptions/microservices\" \"npm run dev -w @subscriptions/pilot\"",
     "emulators": "dotenvx run -f .secrets -f .vars -- firebase emulators:start --project fir-f51cb",
     "build:pilot": "npm run build -w @subscriptions/pilot",
     "build:microservices": "npm run build -w @subscriptions/microservices",

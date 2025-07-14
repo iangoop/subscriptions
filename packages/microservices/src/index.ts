@@ -4,7 +4,7 @@ import { onRequest } from 'firebase-functions/https';
 import EnvVars from '@src/configurations/EnvVars';
 
 let sInstance;
-if (EnvVars.nodeEnv == 'development') {
+if (EnvVars.useFastifyServer) {
   server.listen({ port: Number(EnvVars.port) });
   sInstance = server;
 } else {

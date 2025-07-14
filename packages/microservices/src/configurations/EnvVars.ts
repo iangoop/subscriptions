@@ -2,6 +2,7 @@
 
 export default {
   nodeEnv: process.env.NODE_ENV ?? '',
+  useFastifyServer: process.env.MICROSERVICES_USE_FASTIFY_SERVER === 'true',
   port: process.env.MICROSERVICES_PORT ?? 0,
   functionsApiUrl: process.env.FUNCTIONS_API_URL ?? '',
   firebase: {
