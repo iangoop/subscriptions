@@ -2,7 +2,7 @@ import {
   FastifyPluginAsyncTypebox,
   TypeBoxTypeProvider,
 } from '@fastify/type-provider-typebox';
-import { Type } from '@sinclair/typebox';
+import { Static, Type } from '@sinclair/typebox';
 import { ISubscription, SubscriptionSchema } from '@src/models/Subscription';
 import { SubscriptionService } from '@src/services/SubscriptionService';
 
@@ -22,7 +22,14 @@ const createSubscriptionForProductSchema = Type.Pick(SubscriptionSchema, [
   'shippingMethodCode',
 ]);
 
-const skipSubscriptionSchema = Type.Pick(SubscriptionSchema, ['id']);
+const skipSubscriptionSchema = Type.Pick(SubscriptionSchema, [
+  'id',
+  'customerId',
+]);
+const queryCustomerSubscriptionPlanningSchema = Type.Object({
+  customerId: Type.String(),
+  monthsToShow: Type.Number({ default: 6 }),
+});
 
 const products: FastifyPluginAsyncTypebox = async (
   fastify,
@@ -33,9 +40,9 @@ const products: FastifyPluginAsyncTypebox = async (
   const subscriptionService = new SubscriptionService();
 
   fastifyWithTypeProvider.post<{ Body: ISubscription }>(
-    '/createSubscriptionForProduct',
+    '/create-subscription',
     {
-      schema: createSubscriptionForProductSchema,
+      schema: { body: createSubscriptionForProductSchema },
     },
     async function (request, reply) {
       const subscription = request.body;
@@ -44,13 +51,31 @@ const products: FastifyPluginAsyncTypebox = async (
   );
 
   fastifyWithTypeProvider.post<{ Body: ISubscription }>(
-    '/skipSubscription',
+    '/skip-subscription',
     {
-      schema: skipSubscriptionSchema,
+      schema: { body: skipSubscriptionSchema },
     },
     async function (request, reply) {
       const subscription = request.body;
-      await subscriptionService.skipSubscription(subscription.id);
+      await subscriptionService.skipSubscription(
+        subscription.id,
+        subscription.customerId,
+      );
+    },
+  );
+
+  fastifyWithTypeProvider.post<{
+    Body: Static<typeof queryCustomerSubscriptionPlanningSchema>;
+  }>(
+    '/customer-subscription-planning',
+    {
+      schema: { body: queryCustomerSubscriptionPlanningSchema },
+    },
+    async function (request, reply) {
+      return await subscriptionService.getCustomerSubscriptionPlanning(
+        request.body.customerId,
+        request.body.monthsToShow,
+      );
     },
   );
 

@@ -5,6 +5,7 @@ import useCustomerController from 'src/controllers/CustomerController';
 import { Props } from 'src/controllers/CommonController';
 import { Alert, Button, Modal } from 'react-bootstrap';
 import CustomerAddressView from './CustomerAddress';
+import CustomerSubscriptionsPlanView from './CustomerSubscriptionsPlan';
 
 const CustomerView: React.FC<Props> = (props) => {
   const controller = useCustomerController(props);
@@ -34,7 +35,9 @@ const CustomerView: React.FC<Props> = (props) => {
                   disabled={controller.state.isLoading}
                   className="input-control form-control"
                   type="text"
+                  id="email"
                   name="email"
+                  autoComplete="email"
                   placeholder={t('customer.emailPlaceholder')}
                 />
               </div>
@@ -47,7 +50,9 @@ const CustomerView: React.FC<Props> = (props) => {
                   disabled={controller.state.isLoading}
                   className="input-control form-control"
                   type="text"
+                  id="firstName"
                   name="firstName"
+                  autoComplete="given-name"
                   placeholder={t('customer.firstNamePlaceholder')}
                 />
               </div>
@@ -60,7 +65,9 @@ const CustomerView: React.FC<Props> = (props) => {
                   disabled={controller.state.isLoading}
                   className="input-control form-control"
                   type="text"
+                  id="lastName"
                   name="lastName"
+                  autoComplete="family-name"
                   placeholder={t('customer.lastNamePlaceholder')}
                 />
               </div>
@@ -81,6 +88,7 @@ const CustomerView: React.FC<Props> = (props) => {
         </Formik>
       </div>
       {!controller.isUpdateOperation() && <CustomerAddressView />}
+      {!controller.isUpdateOperation() && <CustomerSubscriptionsPlanView />}
       <Modal
         show={controller.state.showConfirmation}
         onHide={controller.handleConfirmationClose}

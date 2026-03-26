@@ -6,7 +6,7 @@ import {
   OneOfProductId,
   SubscriptionDb,
   SubscriptionPayload,
-} from '../subscriptions';
+} from '../types/subscriptions';
 
 const findCustomerReference = async (
   identifier: OneOfId,
@@ -94,7 +94,7 @@ const saveDeliveries = async (data: SubscriptionPayload) => {
           .collection('deliveries')
           .where('shippingAddressId', '==', deliveryDb.shippingAddressId)
           .where('customerId', '==', deliveryDb.customerId)
-          .where('nextOrderDate', '==', deliveryDb.nextOrderDate)
+          .where('orderDate', '==', deliveryDb.orderDate)
           .get();
         if (queryDelivery.empty) {
           const savedDelivery = await firestore

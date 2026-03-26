@@ -16,7 +16,7 @@ export const DeliverySchema = Type.Object({
   customerId: Type.String(),
   shppingAddressId: Type.String(),
   status: Type.Enum(DeliveryStatus),
-  nextOrderDate: Type.Optional(Type.String({ format: 'date' })),
+  orderDate: Type.Optional(Type.String({ format: 'date' })),
   paymentInfo: Type.Array(PaymentInfoSchema),
 });
 

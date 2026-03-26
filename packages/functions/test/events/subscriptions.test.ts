@@ -1,49 +1,60 @@
-import { admin } from '../../src/admin'; // Import your admin wrapper
 import {
-  fft,
-  getNextActiveDeliveriesForCustomer,
+  test,
   makeDocumentSnapshot,
-  mockDeliveryDbActions,
-  processSubscriptionEvent,
-  makeDeliveryData,
   makeSubData,
   SampleIds,
   BASE_DATE,
+  makeDeliveryData,
 } from '../shared';
 import {
-  findEarliestSuitableDeliveryDate,
-  processDelivery,
-} from '../../src/db/events/subscriptions.f';
-import { isEqual, cloneDeep } from 'lodash';
-import {
-  DATE_FORMAT,
-  DeliveryApp,
-  DeliveryStatus,
+  SubscriptionDb,
   SubscriptionStatus,
-} from '../../src/db/subscriptions';
-import { addWeeks, format, parse, startOfDay } from 'date-fns';
-import { getNextScheduledDate } from '../../src/util/subscriptions';
-import { Change } from 'firebase-functions/core';
-import { DocumentSnapshot } from 'firebase-admin/firestore';
+  DeliveryStatus,
+} from '../../src/db/types/subscriptions';
+jest.mock('../../src/db/subscriptions.db', () =>
+  jest.createMockFromModule('../../src/db/subscriptions.db'),
+);
+jest.mock('../../src/db/deliveries.db', () =>
+  jest.createMockFromModule('../../src/db/deliveries.db'),
+);
+
+// Now import the function being tested
+import { onSubscriptionWritten } from '../../src/db/events/subscriptions.f';
+import * as subscriptionsDbModule from '../../src/db/subscriptions.db';
+import * as deliveriesDbModule from '../../src/db/deliveries.db';
+
+const {
+  getActiveSubscriptionsOrderedByOrderDate,
+  getFreezeTimeInDays,
+  updateSubscription,
+} = jest.mocked(subscriptionsDbModule);
+
+const { getOngoingDeliveriesForCustomer, persistSubscriptionToDelivery } =
+  jest.mocked(deliveriesDbModule);
 
 describe('onSubscriptionWrittenFunctions', () => {
-  async function processDeliveryEvent(
-    deliveryId: string,
-    data: Partial<DeliveryApp>,
-    before?: Partial<DeliveryApp>,
+  async function processSubscriptionEvent(
+    subscriptionId: string,
+    data: Partial<SubscriptionDb>,
+    before?: Partial<SubscriptionDb>,
   ) {
     const event = makeDocumentSnapshot(
-      deliveryId,
-      'deliveries',
-      before ? before : {},
-      data,
+      subscriptionId,
+      'subscriptions',
+      (before ? before : {}) as Record<string, unknown>,
+      data as Record<string, unknown>,
     );
-    return processDelivery(event as unknown as Change<DocumentSnapshot>);
+    const wrapped = test.wrap(onSubscriptionWritten);
+    await wrapped({ data: event });
   }
 
   beforeEach(() => {
-    jest.spyOn(admin, 'firestore').mockReturnThis();
+    // reset mock call counts/instances to initial state
+    jest.clearAllMocks();
+
+    //jest.spyOn(admin, 'firestore').mockReturnThis();
     jest.setSystemTime(new Date(BASE_DATE + 'T00:00:00'));
+    getFreezeTimeInDays.mockResolvedValue(5);
     // Clear Firestore before each test
   });
 
@@ -57,556 +68,739 @@ describe('onSubscriptionWrittenFunctions', () => {
 
   afterAll(() => {
     jest.useRealTimers();
-    fft.cleanup();
+    test.cleanup();
   });
 
-  it('should attach subscription ID to delivery document if date matches', async () => {
+  it('should create a first time delivery for the subscription', async () => {
+    const subscription1Data = makeSubData();
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
+    await processSubscriptionEvent(
+      SampleIds.subscription1Id,
+      subscription1Data,
+    );
+
+    expect(updateSubscription).not.toHaveBeenCalled();
+    expect(persistSubscriptionToDelivery).toHaveBeenCalledWith(
+      SampleIds.subscription1Id,
+      expect.objectContaining({
+        customerId: SampleIds.customer1Id,
+        schedule: '1M',
+        orderDate: BASE_DATE,
+      }),
+      true,
+    );
+  });
+
+  it('should create first time delivery for many subscriptions ', async () => {
+    const subscription1Data = makeSubData();
+    const subscription2Data = makeSubData({
+      productId: SampleIds.product2Id,
+    });
     const deliveryData = makeDeliveryData({
-      id: SampleIds.delivery1Id,
-      nextOrderDate: '2025-06-15T17:57:59',
+      isFirstDelivery: true,
     });
-    const deliveries = [deliveryData];
 
-    const subscription1Data = makeSubData({ id: SampleIds.subscription1Id });
-
-    mockDeliveryDbActions(deliveries, [subscription1Data]);
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValueOnce([]);
+    getOngoingDeliveriesForCustomer.mockResolvedValueOnce([]);
 
     await processSubscriptionEvent(
       SampleIds.subscription1Id,
       subscription1Data,
     );
 
-    expect(deliveries).toHaveLength(1);
-    expect(deliveries[0].paymentInfo).toHaveLength(1);
-    expect(
-      isEqual(deliveries[0].paymentInfo, [
-        {
-          paymentCode: 'abcd',
-          deliveries: [SampleIds.subscription1Id],
-        },
-      ]),
-    ).toBe(true);
-  });
-
-  it('should only attach active subscription ID to delivery document if dates are compatible', async () => {
-    const deliveryData = makeDeliveryData({
-      id: SampleIds.delivery1Id,
-      nextOrderDate: '2025-06-15',
-    });
-    const deliveries: DeliveryApp[] = [deliveryData];
-    /**
-     * Subscription 1: Will use delivery `delivery1Id` as it is the next scheduled delivery and
-     * it happens before chosen schedule interval recurrence.
-     */
-    const subscription1Data = makeSubData({
-      id: SampleIds.subscription1Id,
-      productId: SampleIds.product1Id,
-      quantity: 2,
-    });
-
-    /**
-     * Subscription 2: Will use delivery `delivery1Id` as subscription and delivery dates match.
-     */
-    const subscription2Data = makeSubData({
-      id: SampleIds.subscription2Id,
-      productId: SampleIds.product2Id,
-      nextOrderDate: '2025-06-15',
-    });
-
-    /**
-     * Subscription 3: not be added to a delivery nor create a new delivery
-     * as it has a next order date that is after the delivery's next order date.
-     */
-    const subscription3Data = makeSubData({
-      id: SampleIds.subscription3Id,
-      productId: SampleIds.product3Id,
-      nextOrderDate: '2025-07-15',
-    });
-
-    /**
-     * Subscription 4: Will not be added to a delivery nor create a new delivery
-     * as it is expired.
-     */
-    const subscription4Data = makeSubData({
-      id: SampleIds.subscription4Id,
-      productId: SampleIds.product4Id,
-      status: SubscriptionStatus.Expired,
-      expirationDate: '2025-05-15',
-    });
-
-    mockDeliveryDbActions(deliveries, [
-      subscription1Data,
-      subscription2Data,
-      subscription3Data,
-      subscription4Data,
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([
+      {
+        ...subscription1Data,
+        id: SampleIds.subscription1Id,
+        orderDate: '2026-03-08',
+        created: undefined,
+        updated: undefined,
+      },
     ]);
 
-    await processSubscriptionEvent(
-      SampleIds.subscription1Id,
-      subscription1Data,
-    );
-    await processSubscriptionEvent(
-      SampleIds.subscription2Id,
-      subscription2Data,
-    );
-    await processSubscriptionEvent(
-      SampleIds.subscription3Id,
-      subscription3Data,
-    );
-    await processSubscriptionEvent(
-      SampleIds.subscription4Id,
-      subscription4Data,
-    );
-
-    expect(deliveries.length).toBe(2);
-    if (deliveries.length > 1) {
-      expect(deliveries[0].paymentInfo[0].deliveries).toEqual(
-        expect.arrayContaining([
-          SampleIds.subscription1Id,
-          SampleIds.subscription2Id,
-        ]),
-      );
-      expect(deliveries[1].paymentInfo[0].deliveries).toEqual(
-        expect.arrayContaining([SampleIds.subscription3Id]),
-      );
-    }
-  });
-
-  it('should create separate deliveries for different shipping address and customers', async () => {
-    const deliveries: DeliveryApp[] = [];
-
-    const subscription1Data = makeSubData({
-      id: SampleIds.subscription1Id,
-      productId: SampleIds.product1Id,
-      quantity: 2,
-    });
-
-    const subscription2Data = makeSubData({
-      id: SampleIds.subscription2Id,
-      shippingAddressId: SampleIds.address2Id,
-      productId: SampleIds.product1Id,
-    });
-
-    const subscription3Data = makeSubData({
-      id: SampleIds.subscription3Id,
-      customerId: SampleIds.customer2Id,
-      shippingAddressId: SampleIds.address3Id,
-      productId: SampleIds.product2Id,
-    });
-
-    const subscription4Data = makeSubData({
-      id: SampleIds.subscription4Id,
-      productId: SampleIds.product2Id,
-    });
-
-    mockDeliveryDbActions(deliveries, [
-      subscription1Data,
-      subscription2Data,
-      subscription3Data,
-      subscription4Data,
+    getOngoingDeliveriesForCustomer.mockResolvedValue([
+      {
+        id: `${subscription1Data.customerId}_${subscription1Data.shippingAddressId}_${BASE_DATE}`,
+        ...deliveryData,
+        paymentInfo: [
+          {
+            paymentCode: 'abcd',
+            deliveries: [SampleIds.subscription1Id],
+          },
+        ],
+        created: undefined,
+        updated: undefined,
+      },
     ]);
 
-    await processSubscriptionEvent(
-      SampleIds.subscription1Id,
-      subscription1Data,
-    );
-    await processSubscriptionEvent(
-      SampleIds.subscription2Id,
-      subscription2Data,
-    );
-    await processSubscriptionEvent(
-      SampleIds.subscription3Id,
-      subscription3Data,
-    );
-    await processSubscriptionEvent(
-      SampleIds.subscription4Id,
-      subscription4Data,
-    );
-
-    expect(deliveries.length).toBe(3);
-    if (deliveries.length > 2) {
-      expect(deliveries[0].paymentInfo[0].deliveries).toEqual(
-        expect.arrayContaining([
-          SampleIds.subscription1Id,
-          SampleIds.subscription4Id,
-        ]),
-      );
-      expect(deliveries[1].paymentInfo[0].deliveries).toEqual(
-        expect.arrayContaining([SampleIds.subscription2Id]),
-      );
-      expect(deliveries[2].paymentInfo[0].deliveries).toEqual(
-        expect.arrayContaining([SampleIds.subscription3Id]),
-      );
-    }
-  });
-
-  it('should only attach active subscription ID to delivery document if dates are compatible', async () => {
-    const delivery1Data = makeDeliveryData({
-      id: '1',
-      nextOrderDate: '2025-06-15',
-    });
-
-    const delivery2Data = makeDeliveryData({
-      id: '2',
-      nextOrderDate: '2025-06-30',
-    });
-
-    const deliveries: DeliveryApp[] = [delivery1Data, delivery2Data];
-
-    /**
-     * Subscription 1: will use delivery 1 as it is the earliest delivery and
-     * it happens before chosen schedule interval recurrence
-     */
-    const subscription1Data = makeSubData({
-      id: SampleIds.subscription1Id,
-      productId: SampleIds.product1Id,
-      quantity: 2,
-      schedule: '1M',
-    });
-
-    /**
-     * Subscription 2: will use delivery 2 as subscription and delivery dates match
-     */
-    const subscription2Data = makeSubData({
-      id: SampleIds.subscription2Id,
-      productId: SampleIds.product2Id,
-      quantity: 2,
-      schedule: '2M',
-      nextOrderDate: '2025-06-30',
-    });
-
-    /**
-     * Subscription 3: will use delivery 1 as it is the earliest delivery date and
-     * it happens before chosen schedule interval recurrence.
-     */
-    const subscription3Data = makeSubData({
-      id: SampleIds.subscription3Id,
-      productId: SampleIds.product3Id,
-      schedule: '2W',
-    });
-
-    mockDeliveryDbActions(deliveries, [
-      subscription1Data,
-      subscription2Data,
-      subscription3Data,
-    ]);
-
-    await processSubscriptionEvent(
-      SampleIds.subscription1Id,
-      subscription1Data,
-    );
-    await processSubscriptionEvent(
-      SampleIds.subscription2Id,
-      subscription2Data,
-    );
-    await processSubscriptionEvent(
-      SampleIds.subscription3Id,
-      subscription3Data,
-    );
-
-    expect(deliveries.length).toBe(2);
-    if (deliveries.length > 2) {
-      expect(deliveries[0].paymentInfo[0].deliveries).toEqual(
-        expect.arrayContaining([
-          SampleIds.subscription1Id,
-          SampleIds.subscription3Id,
-        ]),
-      );
-      expect(deliveries[1].paymentInfo[0].deliveries).toEqual(
-        expect.arrayContaining([SampleIds.subscription2Id]),
-      );
-    }
-  });
-
-  it('should create a delivery prior to the first delivery registered', async () => {
-    const nextDeliveryDate = format(
-      startOfDay(parse('2025-06-27', DATE_FORMAT, new Date())),
-      DATE_FORMAT,
-    );
-
-    const deliveries: DeliveryApp[] = [];
-
-    /**
-     * Subscription 1: will create new delivery for the date chosen
-     */
-    const subscription1Data = makeSubData({
-      id: SampleIds.subscription1Id,
-      productId: SampleIds.product1Id,
-      quantity: 2,
-      schedule: '1M',
-      nextOrderDate: nextDeliveryDate,
-    });
-
-    /**
-     * Subscription 2: will create new delivery as the earliest delivery which is
-     * delivery 1 is after the chosen schedule interval recurrence
-     */
-    const subscription2Data = makeSubData({
-      id: SampleIds.subscription2Id,
-      productId: SampleIds.product2Id,
-      quantity: 1,
-      schedule: '2W',
-    });
-
-    /**
-     * Subscription 3: will use the same delivery from subscription 2 as it is the
-     * earliest delivery and it is before the chosen schedule interval recurrence
-     */
-    const subscription3Data = makeSubData({
-      id: SampleIds.subscription3Id,
-      productId: SampleIds.product3Id,
-      quantity: 1,
-      schedule: '2W',
-    });
-
-    mockDeliveryDbActions(deliveries, [
-      subscription1Data,
-      subscription2Data,
-      subscription3Data,
-    ]);
-
-    await processSubscriptionEvent(
-      SampleIds.subscription1Id,
-      subscription1Data,
-    );
-    await processSubscriptionEvent(
-      SampleIds.subscription2Id,
-      subscription2Data,
-    );
-    await processSubscriptionEvent(
-      SampleIds.subscription3Id,
-      subscription3Data,
-    );
-
-    expect(deliveries.length).toBe(2);
-    if (deliveries.length > 1) {
-      expect(deliveries[0].nextOrderDate).toEqual(nextDeliveryDate);
-      expect(deliveries[0].paymentInfo[0].paymentCode).toEqual('abcd');
-      expect(deliveries[0].paymentInfo[0].deliveries).toEqual(
-        expect.arrayContaining([SampleIds.subscription1Id]),
-      );
-
-      expect(deliveries[1].nextOrderDate).toEqual(
-        format(
-          startOfDay(parse('2025-06-13', DATE_FORMAT, new Date())),
-          DATE_FORMAT,
-        ),
-      );
-      expect(deliveries[1].paymentInfo[0].paymentCode).toEqual('abcd');
-      expect(deliveries[1].paymentInfo[0].deliveries).toEqual(
-        expect.arrayContaining([
-          SampleIds.subscription3Id,
-          SampleIds.subscription2Id,
-        ]),
-      );
-    }
-  });
-
-  it('should process deliveries and calculate next order dates to subscriptions', async () => {
-    const deliveries: DeliveryApp[] = [];
-
-    /**
-     * Subscription 1: will create new delivery for the date chosen
-     */
-    const subscription1Data = makeSubData({
-      id: SampleIds.subscription1Id,
-      productId: SampleIds.product1Id,
-      quantity: 2,
-      schedule: '1M',
-      nextOrderDate: '2025-06-27',
-    });
-
-    const subscription2Data = makeSubData({
-      id: SampleIds.subscription2Id,
-      productId: SampleIds.product2Id,
-      quantity: 1,
-      schedule: '2M',
-      nextOrderDate: format(
-        getNextScheduledDate(
-          startOfDay(parse('2025-06-27', DATE_FORMAT, new Date())),
-          '1M',
-        ),
-        DATE_FORMAT,
-      ),
-    });
-
-    const subscription3Data = makeSubData({
-      id: SampleIds.subscription3Id,
-      productId: SampleIds.product3Id,
-      quantity: 1,
-      schedule: '2W',
-    });
-
-    const subscription4Data = makeSubData({
-      id: SampleIds.subscription4Id,
-      productId: SampleIds.product4Id,
-      quantity: 1,
-      schedule: '2M',
-    });
-
-    mockDeliveryDbActions(deliveries, [
-      subscription1Data,
-      subscription2Data,
-      subscription3Data,
-      subscription4Data,
-    ]);
-
-    await processSubscriptionEvent(
-      SampleIds.subscription1Id,
-      subscription1Data,
-    );
     await processSubscriptionEvent(
       SampleIds.subscription2Id,
       subscription2Data,
     );
 
-    await processSubscriptionEvent(
-      SampleIds.subscription3Id,
-      subscription3Data,
+    expect(updateSubscription).not.toHaveBeenCalled();
+    expect(persistSubscriptionToDelivery).toHaveBeenCalledTimes(2);
+    expect(persistSubscriptionToDelivery).toHaveBeenCalledWith(
+      SampleIds.subscription1Id,
+      expect.objectContaining({
+        customerId: SampleIds.customer1Id,
+        schedule: '1M',
+        orderDate: BASE_DATE,
+      }),
+      true,
     );
+    expect(persistSubscriptionToDelivery).toHaveBeenCalledWith(
+      SampleIds.subscription2Id,
+      expect.objectContaining({
+        customerId: SampleIds.customer1Id,
+        schedule: '1M',
+        orderDate: BASE_DATE,
+      }),
+      true,
+    );
+  });
+
+  it('should define order date for subscription', async () => {
+    const subscription1Data = makeSubData();
+    const subscription2Data = makeSubData({
+      productId: SampleIds.product2Id,
+    });
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([
+      {
+        ...subscription1Data,
+        id: SampleIds.subscription1Id,
+        orderDate: '2026-03-08',
+        created: undefined,
+        updated: undefined,
+      },
+    ]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
     await processSubscriptionEvent(
-      SampleIds.subscription4Id,
-      subscription4Data,
+      SampleIds.subscription2Id,
+      subscription2Data,
     );
 
-    let orderedDeliveries = getNextActiveDeliveriesForCustomer(
-      deliveries,
-      SampleIds.customer1Id,
-      SampleIds.address1Id,
-    );
-    expect(orderedDeliveries.length).toBe(3);
-    expect(orderedDeliveries[0].paymentInfo[0].paymentCode).toEqual('abcd');
-    expect(orderedDeliveries[0].paymentInfo[0].deliveries).toEqual(
-      expect.arrayContaining([SampleIds.subscription3Id]),
-    );
-    expect(orderedDeliveries[1].paymentInfo[0].paymentCode).toEqual('abcd');
-    expect(orderedDeliveries[1].paymentInfo[0].deliveries).toEqual(
-      expect.arrayContaining([
-        SampleIds.subscription4Id,
-        SampleIds.subscription1Id,
-      ]),
-    );
-    expect(orderedDeliveries[2].paymentInfo[0].paymentCode).toEqual('abcd');
-    expect(orderedDeliveries[2].paymentInfo[0].deliveries).toEqual(
-      expect.arrayContaining([SampleIds.subscription2Id]),
-    );
-
-    const _subscription3Data = cloneDeep(subscription3Data);
-    await processDeliveryEvent(
-      orderedDeliveries[0].id,
-      Object.assign(orderedDeliveries[0], {
-        status: DeliveryStatus.Processing,
+    expect(updateSubscription).toHaveBeenCalledTimes(1);
+    expect(updateSubscription).toHaveBeenCalledWith(
+      SampleIds.subscription2Id,
+      expect.objectContaining({
+        orderDate: '2026-03-08',
       }),
     );
+    expect(persistSubscriptionToDelivery).not.toHaveBeenCalled();
+  });
+
+  it('should define order date for subscription on a lower frequency', async () => {
+    const subscription1Data = makeSubData();
+    const subscription2Data = makeSubData({
+      productId: SampleIds.product2Id,
+      schedule: '1W',
+    });
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([
+      {
+        ...subscription1Data,
+        id: SampleIds.subscription1Id,
+        orderDate: '2026-03-08',
+        created: undefined,
+        updated: undefined,
+      },
+    ]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
+    await processSubscriptionEvent(
+      SampleIds.subscription2Id,
+      subscription2Data,
+    );
+
+    expect(updateSubscription).toHaveBeenCalledTimes(1);
+    expect(updateSubscription).toHaveBeenCalledWith(
+      SampleIds.subscription2Id,
+      expect.objectContaining({
+        orderDate: '2026-02-15',
+      }),
+    );
+    expect(persistSubscriptionToDelivery).not.toHaveBeenCalled();
+  });
+
+  it('should define order date for same schedule', async () => {
+    const subscription1Data = makeSubData();
+    const subscription2Data = makeSubData({
+      productId: SampleIds.product2Id,
+      schedule: '1W',
+    });
+    const subscription3Data = makeSubData({
+      productId: SampleIds.product3Id,
+    });
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([
+      {
+        ...subscription2Data,
+        id: SampleIds.subscription2Id,
+        orderDate: '2026-02-15',
+        created: undefined,
+        updated: undefined,
+      },
+      {
+        ...subscription1Data,
+        id: SampleIds.subscription1Id,
+        orderDate: '2026-03-08',
+        created: undefined,
+        updated: undefined,
+      },
+    ]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
     await processSubscriptionEvent(
       SampleIds.subscription3Id,
       subscription3Data,
-      _subscription3Data,
     );
 
-    orderedDeliveries = getNextActiveDeliveriesForCustomer(
-      deliveries,
-      SampleIds.customer1Id,
-      SampleIds.address1Id,
-    );
-    expect(deliveries.length).toBe(3);
-    expect(orderedDeliveries.length).toBe(2);
-    expect(orderedDeliveries[0].paymentInfo[0].deliveries).toEqual(
-      expect.arrayContaining([
-        SampleIds.subscription3Id,
-        SampleIds.subscription4Id,
-        SampleIds.subscription1Id,
-      ]),
-    );
-
-    const _subscription1Data = cloneDeep(subscription1Data);
-    const __subscription3Data = cloneDeep(subscription3Data);
-    const _subscription4Data = cloneDeep(subscription4Data);
-    await processDeliveryEvent(
-      orderedDeliveries[0].id,
-      Object.assign(orderedDeliveries[0], {
-        status: DeliveryStatus.Processing,
+    expect(updateSubscription).toHaveBeenCalledTimes(1);
+    expect(updateSubscription).toHaveBeenCalledWith(
+      SampleIds.subscription3Id,
+      expect.objectContaining({
+        orderDate: '2026-03-08',
       }),
     );
+    expect(persistSubscriptionToDelivery).not.toHaveBeenCalled();
+  });
+
+  it('should define order date to start at the same date as the one with lower frequency', async () => {
+    const subscription1Data = makeSubData({
+      schedule: '1W',
+    });
+    const subscription2Data = makeSubData({
+      productId: SampleIds.product2Id,
+    });
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([
+      {
+        ...subscription2Data,
+        id: SampleIds.subscription2Id,
+        orderDate: '2026-02-15',
+        created: undefined,
+        updated: undefined,
+      },
+    ]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
     await processSubscriptionEvent(
       SampleIds.subscription1Id,
       subscription1Data,
-      _subscription1Data,
     );
+
+    expect(updateSubscription).toHaveBeenCalledTimes(1);
+    expect(updateSubscription).toHaveBeenCalledWith(
+      SampleIds.subscription1Id,
+      expect.objectContaining({
+        orderDate: '2026-02-15',
+      }),
+    );
+    expect(persistSubscriptionToDelivery).not.toHaveBeenCalled();
+  });
+
+  it('should ignore subscription in freeze time and have it date schedule to the future', async () => {
+    const subscription1Data = makeSubData();
+    const subscription2Data = makeSubData({
+      productId: SampleIds.product2Id,
+    });
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([
+      {
+        ...subscription1Data,
+        id: SampleIds.subscription1Id,
+        orderDate: '2026-02-10',
+        created: undefined,
+        updated: undefined,
+      },
+    ]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
+    await processSubscriptionEvent(
+      SampleIds.subscription2Id,
+      subscription2Data,
+    );
+
+    expect(updateSubscription).toHaveBeenCalledTimes(1);
+    expect(updateSubscription).toHaveBeenCalledWith(
+      SampleIds.subscription2Id,
+      expect.objectContaining({
+        orderDate: '2026-03-10',
+      }),
+    );
+    expect(persistSubscriptionToDelivery).not.toHaveBeenCalled();
+  });
+
+  it('should ignore subscription in freeze time and have it date schedule to the future (different schedule type)', async () => {
+    const subscription1Data = makeSubData();
+    const subscription2Data = makeSubData({
+      productId: SampleIds.product2Id,
+      schedule: '1W',
+    });
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([
+      {
+        ...subscription1Data,
+        id: SampleIds.subscription1Id,
+        orderDate: '2026-02-10',
+        created: undefined,
+        updated: undefined,
+      },
+    ]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
+    await processSubscriptionEvent(
+      SampleIds.subscription2Id,
+      subscription2Data,
+    );
+
+    expect(updateSubscription).toHaveBeenCalledTimes(1);
+    expect(updateSubscription).toHaveBeenCalledWith(
+      SampleIds.subscription2Id,
+      expect.objectContaining({
+        orderDate: '2026-02-17',
+      }),
+    );
+    expect(persistSubscriptionToDelivery).not.toHaveBeenCalled();
+  });
+
+  it('should ignore subscription in freeze time and have it date schedule to the future (same schedule type, different frequency)', async () => {
+    const subscription1Data = makeSubData();
+    const subscription2Data = makeSubData({
+      productId: SampleIds.product2Id,
+      schedule: '2M',
+    });
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([
+      {
+        ...subscription1Data,
+        id: SampleIds.subscription1Id,
+        orderDate: '2026-02-10',
+        created: undefined,
+        updated: undefined,
+      },
+    ]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
+    await processSubscriptionEvent(
+      SampleIds.subscription2Id,
+      subscription2Data,
+    );
+
+    expect(updateSubscription).toHaveBeenCalledTimes(1);
+    expect(updateSubscription).toHaveBeenCalledWith(
+      SampleIds.subscription2Id,
+      expect.objectContaining({
+        orderDate: '2026-03-10',
+      }),
+    );
+    expect(persistSubscriptionToDelivery).not.toHaveBeenCalled();
+  });
+
+  it('should schedule subscription when it is not first time and not frozen (next subscription is too far in future)', async () => {
+    const subscription1Data = makeSubData();
+    const subscription2Data = makeSubData({
+      productId: SampleIds.product4Id,
+    });
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([
+      {
+        ...subscription1Data,
+        id: SampleIds.subscription1Id,
+        orderDate: '2026-04-08', // Far in future, not frozen
+        created: undefined,
+        updated: undefined,
+      },
+    ]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
+    await processSubscriptionEvent(
+      SampleIds.subscription2Id,
+      subscription2Data,
+    );
+
+    // Should use updateSubscription instead of persistSubscriptionToDelivery
+    expect(updateSubscription).toHaveBeenCalledWith(
+      SampleIds.subscription2Id,
+      expect.objectContaining({
+        orderDate: '2026-03-11',
+      }),
+    );
+    expect(persistSubscriptionToDelivery).not.toHaveBeenCalled();
+  });
+
+  it('should not process when document does not exist', async () => {
+    await processSubscriptionEvent(SampleIds.subscription1Id, {});
+
+    expect(updateSubscription).not.toHaveBeenCalled();
+    expect(persistSubscriptionToDelivery).not.toHaveBeenCalled();
+  });
+
+  it('should not process when subscription is inactive', async () => {
+    const subscriptionData = makeSubData({
+      status: SubscriptionStatus.Expired, // or any non-Active status
+    });
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
+    await processSubscriptionEvent(SampleIds.subscription1Id, subscriptionData);
+
+    expect(updateSubscription).not.toHaveBeenCalled();
+    expect(persistSubscriptionToDelivery).not.toHaveBeenCalled();
+  });
+
+  it('should not process when subscription has past orderDate', async () => {
+    const subscriptionData = makeSubData({
+      orderDate: '2026-01-01', // Before BASE_DATE (2026-02-20)
+    });
+
+    await processSubscriptionEvent(SampleIds.subscription1Id, subscriptionData);
+
+    // Should return early in scheduleSubscription, no DB calls
+    expect(updateSubscription).not.toHaveBeenCalled();
+    expect(persistSubscriptionToDelivery).not.toHaveBeenCalled();
+  });
+
+  it('should process when existing subscription orderDate changed', async () => {
+    const subscriptionBefore = makeSubData({
+      orderDate: '2026-03-08',
+    });
+    const subscriptionAfter = makeSubData({
+      orderDate: '2026-03-15', // Changed orderDate
+    });
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
+    await processSubscriptionEvent(
+      SampleIds.subscription1Id,
+      subscriptionAfter,
+      subscriptionBefore,
+    );
+
+    // Should call one of the DB functions
+    expect(updateSubscription).toHaveBeenCalled();
+    expect(persistSubscriptionToDelivery).not.toHaveBeenCalled();
+  });
+
+  it('should not process when existing subscription orderDate did not change', async () => {
+    const subscriptionData = makeSubData({
+      orderDate: '2026-03-08',
+    });
+
+    await processSubscriptionEvent(
+      SampleIds.subscription1Id,
+      subscriptionData,
+      subscriptionData, // Same before and after
+    );
+
+    expect(updateSubscription).not.toHaveBeenCalled();
+    expect(persistSubscriptionToDelivery).not.toHaveBeenCalled();
+  });
+
+  it('should call persist subscription to delivery when existing subscription with changed frozen orderDate', async () => {
+    const subscriptionBefore = makeSubData({
+      orderDate: '2026-03-08',
+    });
+    const subscriptionAfter = makeSubData({
+      orderDate: '2026-02-13', // Changed to a frozen date (within 5 days)
+    });
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
+    await processSubscriptionEvent(
+      SampleIds.subscription1Id,
+      subscriptionAfter,
+      subscriptionBefore,
+    );
+
+    expect(updateSubscription).not.toHaveBeenCalled();
+    expect(persistSubscriptionToDelivery).toHaveBeenCalled();
+  });
+
+  it('should not process subscription if previous orderDate is frozen', async () => {
+    const subscriptionBefore = makeSubData({
+      orderDate: '2026-02-08',
+    });
+    const subscriptionAfter = makeSubData({
+      orderDate: '2026-02-13', // Changed to a frozen date (within 5 days)
+    });
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
+    await processSubscriptionEvent(
+      SampleIds.subscription1Id,
+      subscriptionAfter,
+      subscriptionBefore,
+    );
+
+    expect(updateSubscription).not.toHaveBeenCalled();
+    expect(persistSubscriptionToDelivery).not.toHaveBeenCalled();
+  });
+
+  it('should prefer exact schedule match when multiple active subscriptions exist', async () => {
+    const subscription1Data = makeSubData({
+      schedule: '1W',
+      orderDate: '2026-02-15',
+    });
+    const subscription2Data = makeSubData({
+      productId: SampleIds.product2Id,
+      schedule: '2W',
+      orderDate: '2026-02-20',
+    });
+    const newSubscriptionData = makeSubData({
+      productId: SampleIds.product3Id,
+      schedule: '2W',
+    });
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([
+      {
+        ...subscription1Data,
+        id: SampleIds.subscription1Id,
+        created: undefined,
+        updated: undefined,
+      },
+      {
+        ...subscription2Data,
+        id: SampleIds.subscription2Id,
+        created: undefined,
+        updated: undefined,
+      },
+    ]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
     await processSubscriptionEvent(
       SampleIds.subscription3Id,
-      subscription3Data,
-      __subscription3Data,
+      newSubscriptionData,
     );
+
+    // Should align with 2W subscription (2026-02-20) instead of the earlier 1W (2026-02-15)
+    expect(updateSubscription).toHaveBeenCalledWith(
+      SampleIds.subscription3Id,
+      expect.objectContaining({
+        orderDate: '2026-02-20',
+      }),
+    );
+  });
+
+  it('should use first active subscription as anchor when no schedule match exists', async () => {
+    const subscription1Data = makeSubData({
+      schedule: '1M',
+      orderDate: '2026-03-01',
+    });
+    const newSubscriptionData = makeSubData({
+      productId: SampleIds.product2Id,
+      schedule: '1W',
+    });
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([
+      {
+        ...subscription1Data,
+        id: SampleIds.subscription1Id,
+        created: undefined,
+        updated: undefined,
+      },
+    ]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
     await processSubscriptionEvent(
-      SampleIds.subscription4Id,
-      subscription4Data,
-      _subscription4Data,
+      SampleIds.subscription2Id,
+      newSubscriptionData,
     );
 
-    orderedDeliveries = getNextActiveDeliveriesForCustomer(
-      deliveries,
-      SampleIds.customer1Id,
-      SampleIds.address1Id,
-    );
-    expect(deliveries.length).toBe(5);
-    expect(orderedDeliveries.length).toBe(3);
-    expect(orderedDeliveries[0].paymentInfo[0].deliveries).toEqual(
-      expect.arrayContaining([SampleIds.subscription3Id]),
-    );
-    expect(orderedDeliveries[1].paymentInfo[0].deliveries).toEqual(
-      expect.arrayContaining([
-        SampleIds.subscription1Id,
-        SampleIds.subscription2Id,
-      ]),
-    );
-    expect(orderedDeliveries[2].paymentInfo[0].deliveries).toEqual(
-      expect.arrayContaining([SampleIds.subscription4Id]),
+    // Anchor is 2026-03-01 ('1M'). New is '1W'.
+    // today = 2026-02-08. freeze = 5. min = 2026-02-13.
+    // findMatchingDateForSubscription will call findEarliestSuitableOrderDate(2026-03-01, '1W', 2026-02-13)
+    // Steps back from 2026-03-01: 02-22, 02-15, 02-08.
+    // Returns getNextScheduledDate(02-08, '1W') = 2026-02-15.
+    expect(updateSubscription).toHaveBeenCalledWith(
+      SampleIds.subscription2Id,
+      expect.objectContaining({
+        orderDate: '2026-02-15',
+      }),
     );
   });
 
-  it('should match delivery dates for week and month schedules', () => {
-    const result1 = getNextScheduledDate(
-      parse('2025-05-29', 'yyyy-MM-dd', new Date()),
-      '1M',
+  it('should step back multiple times in findEarliestSuitableOrderDate', async () => {
+    const subscription1Data = makeSubData({
+      schedule: '1W',
+      orderDate: '2026-04-01', // Far in future
+    });
+    const newSubscriptionData = makeSubData({
+      productId: SampleIds.product2Id,
+      schedule: '1W',
+    });
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([
+      {
+        ...subscription1Data,
+        id: SampleIds.subscription1Id,
+        created: undefined,
+        updated: undefined,
+      },
+    ]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
+    await processSubscriptionEvent(
+      SampleIds.subscription2Id,
+      newSubscriptionData,
     );
-    const result2 = getNextScheduledDate(
-      parse('2025-05-29', 'yyyy-MM-dd', new Date()),
-      '2W',
+
+    // Steps back from 2026-04-01: 03-25, 03-18, 03-11, 03-04, 02-25, 02-18, 02-11.
+    // Returns getNextScheduledDate(02-11, '1W') = 2026-02-18.
+    expect(updateSubscription).toHaveBeenCalledWith(
+      SampleIds.subscription2Id,
+      expect.objectContaining({
+        orderDate: '2026-02-18',
+      }),
     );
-    const result3 = getNextScheduledDate(result2, '2W');
-    expect(result1).toEqual(result3);
   });
 
-  it('should have 3 deliveries in a month', () => {
-    const result1 = getNextScheduledDate(
-      parse('2025-06-08', 'yyyy-MM-dd', new Date()),
-      '1M',
+  it('should return false for isFirstTimeDelivery when an ongoing delivery exists from the past', async () => {
+    const newSubscriptionData = makeSubData();
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([
+      {
+        ...makeDeliveryData({
+          orderDate: '2026-02-01', // In the past
+          status: DeliveryStatus.Shipped,
+          isFirstDelivery: true,
+        }),
+        id: 'old_delivery',
+      },
+    ]);
+
+    await processSubscriptionEvent(
+      SampleIds.subscription1Id,
+      newSubscriptionData,
     );
-    const result2 = getNextScheduledDate(
-      parse('2025-06-08', 'yyyy-MM-dd', new Date()),
-      '2W',
+
+    // isFirstTimeDelivery should be false because there's an ongoing delivery (even if past).
+    // So it calls findMatchingDateForSubscription.
+    // activeSubscriptionsByOrderDate is empty.
+    // firstDateAvailable = minimumNextOrderDate = 2026-02-13.
+    // candidateOrderDate = 2026-02-13.
+    // Returns 2026-02-13.
+    // 2026-02-13 IS frozen when today is 2026-02-08 and freeze is 5.
+    expect(persistSubscriptionToDelivery).toHaveBeenCalledWith(
+      SampleIds.subscription1Id,
+      expect.objectContaining({
+        orderDate: '2026-02-13',
+      }),
+      false, // isFirstTime
     );
-    const result3 = getNextScheduledDate(result2, '2W');
-    expect(result1).toEqual(addWeeks(result3, 1));
+    expect(updateSubscription).not.toHaveBeenCalled();
   });
 
-  it('should shift a week', () => {
-    const result1 = getNextScheduledDate(
-      parse('2025-03-31', 'yyyy-MM-dd', new Date()),
-      '1W',
+  it('should align to exactly minimumNextOrderDate if anchor matches it after stepping back', async () => {
+    const subscription1Data = makeSubData({
+      schedule: '1W',
+      orderDate: '2026-02-27',
+    });
+    const newSubscriptionData = makeSubData({
+      productId: SampleIds.product2Id,
+      schedule: '1W',
+    });
+
+    // today = 2026-02-08. freeze = 5. min = 2026-02-13.
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([
+      {
+        ...subscription1Data,
+        id: SampleIds.subscription1Id,
+        created: undefined,
+        updated: undefined,
+      },
+    ]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
+    await processSubscriptionEvent(
+      SampleIds.subscription2Id,
+      newSubscriptionData,
     );
-    expect(result1).toEqual(
-      addWeeks(parse('2025-03-31', 'yyyy-MM-dd', new Date()), 1),
+
+    // Steps back from 02-27: 02-20, 02-13.
+    // 02-13 is NOT isAfter(02-13, 02-13).
+    // isSameDay(02-13, 02-13) is true.
+    // Returns 2026-02-13.
+    // 2026-02-13 is frozen.
+    expect(persistSubscriptionToDelivery).toHaveBeenCalledWith(
+      SampleIds.subscription2Id,
+      expect.objectContaining({
+        orderDate: '2026-02-13',
+      }),
+      false, // isFirstTime because activeSubscriptions was NOT empty
     );
   });
 
-  it('should find earliest delivery date based on week', () => {
-    jest.setSystemTime(new Date('2025-06-06T00:00:00Z'));
-    const result = findEarliestSuitableDeliveryDate(
-      parse('2025-06-27', 'yyyy-MM-dd', new Date()),
-      '2W',
+  it('should persist to delivery when manually updating to a frozen date', async () => {
+    const subscriptionBefore = makeSubData({
+      orderDate: '2026-03-08',
+    });
+    const subscriptionAfter = makeSubData({
+      orderDate: '2026-02-10', // Frozen (today is 02-08, freeze is 5)
+    });
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([
+      {
+        ...subscriptionBefore,
+        id: SampleIds.subscription1Id,
+        created: undefined,
+        updated: undefined,
+      },
+    ]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
+    await processSubscriptionEvent(
+      SampleIds.subscription1Id,
+      subscriptionAfter,
+      subscriptionBefore,
     );
-    expect(result).toEqual(parse('2025-06-13', 'yyyy-MM-dd', new Date()));
+
+    expect(persistSubscriptionToDelivery).toHaveBeenCalledWith(
+      SampleIds.subscription1Id,
+      expect.objectContaining({
+        orderDate: '2026-02-10',
+      }),
+      false, // isFirstTime should be false because activeSubscriptions is not empty
+    );
+  });
+
+  it('should process and reset status to Active when status changes from Active to Ready', async () => {
+    const subscriptionBefore = makeSubData({
+      status: SubscriptionStatus.Active,
+      orderDate: '2026-03-08',
+    });
+    const subscriptionAfter = makeSubData({
+      status: SubscriptionStatus.Ready, // Changed to Ready
+      orderDate: '2026-03-08',
+    });
+
+    getActiveSubscriptionsOrderedByOrderDate.mockResolvedValue([]);
+    getOngoingDeliveriesForCustomer.mockResolvedValue([]);
+
+    await processSubscriptionEvent(
+      SampleIds.subscription1Id,
+      subscriptionAfter,
+      subscriptionBefore,
+    );
+
+    // Should call updateSubscription with status: Active
+    expect(updateSubscription).toHaveBeenCalledWith(
+      SampleIds.subscription1Id,
+      expect.objectContaining({
+        status: SubscriptionStatus.Active,
+        scheduled: true,
+      }),
+    );
   });
 });

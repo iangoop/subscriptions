@@ -7,6 +7,10 @@
   .item-row {
     a {
       @include item-card;
+      img,
+      .img {
+        border-radius: 8px 0 0 8px;
+      }
       .card-details {
         .product-name {
           width: 100%;

@@ -1,24 +1,26 @@
-import { Type, Static } from '@sinclair/typebox';
+import { Type } from '@sinclair/typebox';
 import { validateWithMessages } from '../util';
-import {
-  addMonths,
-  endOfDay,
-  format,
-  isBefore,
-  lastDayOfMonth,
-  startOfDay,
-} from 'date-fns';
+import { format } from 'date-fns';
 import {
   DATE_FORMAT,
-  DeliveryApp,
-  getActiveSubscriptions,
-  getNextActiveDeliveriesForCustomer,
-  SubscriptionPlanning,
-} from '../db/subscriptions';
-import { getNextScheduledDate, strToDate } from '../util/subscriptions';
-import { groupBy } from 'lodash';
+  dateToStr,
+  getNextScheduledDate,
+  strToDate,
+} from '../util/subscriptions';
 import { app } from '../app';
 import { Request, Response } from 'express';
+import {
+  getFreezeTimeInDays,
+  getSubscription,
+  getSubscriptionsByStatusesOrderedByOrderDate,
+  updateSubscription,
+} from '../db/subscriptions.db';
+import {
+  buildSubscriptionsForCustomerPlanning,
+  isSkippable,
+} from './subscriptions.util';
+import { SubscriptionStatus } from '../db/types/subscriptions';
+import { getOngoingDeliveriesForCustomer } from '../db/deliveries.db';
 
 const nextScheduleQuerySchema = Type.Object({
   date: Type.String({ format: 'date' }),
@@ -28,6 +30,10 @@ const nextScheduleQuerySchema = Type.Object({
 const custmerSubscriptionPlanningSchema = Type.Object({
   customerId: Type.String(),
   monthsToShow: Type.Optional(Type.Number({ default: 6 })),
+});
+
+const skipSubscriptionSchema = Type.Object({
+  id: Type.String(),
 });
 
 export const nextScheduledDate = (req: Request, res: Response) => {
@@ -51,78 +57,24 @@ export const nextScheduledDate = (req: Request, res: Response) => {
 
 app.post('/next-scheduled-date', nextScheduledDate);
 
-type SubscriptionsGroup = {
-  delivery?: DeliveryApp;
-  subscriptions: SubscriptionPlanning[];
-};
-type AddressSubscriptionGroup = Record<string, AddressDateSubscriptionGroup>;
-type AddressDateSubscriptionGroup = Record<string, SubscriptionsGroup>;
-
-export const buildSubscriptionPlanning = async (
-  params: Static<typeof custmerSubscriptionPlanningSchema>,
+export const prepareSubscriptionsForCustomerPlanning = async (
+  customerId: string,
+  monthsToShow: number = 6,
 ) => {
-  const { customerId, monthsToShow } = params;
-  const planning: AddressSubscriptionGroup = {};
-  const deliveries = await getNextActiveDeliveriesForCustomer(customerId);
-  const subscriptions = await getActiveSubscriptions(customerId);
-  const groupedDeliveries = groupBy(deliveries, 'shippingAddressId');
-  const today = startOfDay(new Date());
-
-  const maxDate = endOfDay(lastDayOfMonth(addMonths(today, monthsToShow!)));
-  for (const addressId in groupedDeliveries) {
-    const groupByDate = groupedDeliveries[
-      addressId
-    ].reduce<AddressDateSubscriptionGroup>((acc, delivery) => {
-      const orderDate = delivery.nextOrderDate!;
-      if (acc[orderDate]) {
-        acc[orderDate].delivery = delivery;
-      } else {
-        acc[orderDate] = { delivery: delivery, subscriptions: [] };
-      }
-      delivery.paymentInfo.forEach((paymentInfo) => {
-        paymentInfo.deliveries.forEach((subscriptionId) => {
-          const subscription = subscriptions.find(
-            (sub) => sub.id === subscriptionId,
-          );
-          if (subscription) {
-            acc[orderDate].subscriptions.push({
-              ...subscription,
-              isEditable: true,
-            });
-            let nextOrderDate = getNextScheduledDate(
-              strToDate(orderDate),
-              subscription.schedule,
-            );
-            while (isBefore(nextOrderDate, maxDate)) {
-              const nextOrderDateStr = format(nextOrderDate, DATE_FORMAT);
-              if (!acc[nextOrderDateStr]) {
-                acc[nextOrderDateStr] = {
-                  delivery: undefined,
-                  subscriptions: [],
-                };
-              }
-              acc[nextOrderDateStr].subscriptions.push({
-                ...subscription,
-                isEditable: false,
-              });
-              nextOrderDate = getNextScheduledDate(
-                nextOrderDate,
-                subscription.schedule,
-              );
-            }
-          }
-        });
-      });
-
-      return acc;
-    }, {});
-    planning[addressId] = Object.fromEntries(
-      Object.entries(groupByDate).sort(([keyA], [keyB]) =>
-        keyA.localeCompare(keyB),
-      ),
-    );
-  }
-  return planning;
+  const freezeTime = await getFreezeTimeInDays();
+  const subscriptionsFromCustomer =
+    await getSubscriptionsByStatusesOrderedByOrderDate(customerId, [
+      SubscriptionStatus.Active,
+      SubscriptionStatus.OnGoing,
+    ]);
+  const deliveriesFromCustomer =
+    await getOngoingDeliveriesForCustomer(customerId);
+  return buildSubscriptionsForCustomerPlanning(
+    subscriptionsFromCustomer,
+    deliveriesFromCustomer,
+    freezeTime,
+    monthsToShow,
+  );
 };
 
 export const getCustomerSubscriptionPlanning = async (
@@ -140,9 +92,68 @@ export const getCustomerSubscriptionPlanning = async (
   if (!result.valid) {
     res.status(400).send({ errors: result.errors });
   } else {
-    const planning = await buildSubscriptionPlanning(result.data);
+    const { customerId, monthsToShow } = result.data;
+    const planning = await prepareSubscriptionsForCustomerPlanning(
+      customerId,
+      monthsToShow,
+    );
     res.status(200).send(planning);
   }
 };
 
 app.post('/customer-subscription-planning', getCustomerSubscriptionPlanning);
+
+export const processSkipSubscription = async (subscriptionId: string) => {
+  const freezeTime = await getFreezeTimeInDays();
+  const subscription = await getSubscription(subscriptionId);
+  if (!subscription) {
+    throw new Error(`Subscription with ID ${subscriptionId} not found.`);
+  }
+  if (!subscription.orderDate) {
+    throw new Error(
+      `Subscription with ID ${subscriptionId} has no next order date.`,
+    );
+  }
+
+  const subscriptionsForAddress =
+    await getSubscriptionsByStatusesOrderedByOrderDate(
+      subscription.customerId,
+      [SubscriptionStatus.Active],
+      subscription.shippingAddressId,
+    );
+
+  const canSkip = isSkippable(
+    subscriptionId,
+    subscriptionsForAddress,
+    freezeTime,
+  );
+
+  if (!canSkip) {
+    throw new Error(`Subscription with ID ${subscriptionId} cannot be skipped`);
+  }
+  const nextOrderDate = getNextScheduledDate(
+    strToDate(subscription.orderDate),
+    subscription.schedule,
+  );
+  await updateSubscription(subscriptionId, {
+    orderDate: dateToStr(nextOrderDate),
+  });
+};
+
+const skipSubscription = async (req: Request, res: Response) => {
+  const result = validateWithMessages(skipSubscriptionSchema, req.body, {
+    id: 'Invalid "id". Expected a valid subscription ID.',
+  });
+  if (!result.valid) {
+    res.status(400).send({ errors: result.errors });
+  } else {
+    try {
+      await processSkipSubscription(result.data.id);
+      res.status(200).send({ success: true });
+    } catch (error) {
+      res.status(500).send(error);
+    }
+  }
+};
+
+app.post('/skip-subscription', skipSubscription);

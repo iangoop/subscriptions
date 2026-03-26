@@ -4,8 +4,12 @@ import { exportProduct } from './db/migration/products';
 import { onRequest } from 'firebase-functions/v2/https';
 import { Customer, exportCustomer } from './db/migration/customers';
 import { exportSubscriptions } from './db/migration/subscriptions';
-import { SubscriptionPayload } from './db/subscriptions';
+import { SubscriptionPayload } from './db/subscriptions.db';
 import { app, covert } from './app';
+import {
+  Configuration,
+  exportConfigurations,
+} from './db/migration/configurations';
 
 /** EXPORT ALL FUNCTIONS
  *
@@ -53,6 +57,12 @@ covert.post('/migrate/customers', async (req, res) => {
 covert.post('/migrate/subscriptions', async (req, res) => {
   const deliveryList = req.body as SubscriptionPayload;
   await exportSubscriptions(deliveryList);
+  res.send('ok');
+});
+
+covert.post('/migrate/configurations', async (req, res) => {
+  const configurationList = req.body as Configuration[];
+  await exportConfigurations(configurationList);
   res.send('ok');
 });
 

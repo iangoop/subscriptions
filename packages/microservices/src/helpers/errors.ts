@@ -55,6 +55,7 @@ export const InternalErrorList = {
   doc006: '%s dependency can not be resolved',
   cu001: 'Email %s can not be set for the customer',
   ca001: "Can't find customer with id %s",
+  su001: "Subscription doesn't belong to customer with id %s",
 } as const;
 
 export type ErrorCode = keyof typeof InternalErrorList;

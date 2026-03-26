@@ -13,6 +13,7 @@
     "@types/react-dom": "^18.3.0",
     "axios": "^1.7.4",
     "bootstrap": "^5.3.3",
+    "date-fns": "^4.1.0",
     "formik": "^2.4.6",
     "i18next": "^23.15.1",
     "lodash": "^4.17.21",

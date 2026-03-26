@@ -62,6 +62,7 @@ export default i18n
             longDescriptionPlaceholder: 'Enter long description of product',
             priceLbl: 'Price',
             pricePlaceholder: 'Enter price of the product',
+            qtyLbl: 'Qty',
             qtyInStockLbl: 'Stock Qty',
             qtyInStockPlaceholder: 'Enter qty in stock of the product',
             confirmationModalMessage: 'Product data was successfully saved. ',
@@ -112,6 +113,31 @@ export default i18n
               confirmationModalMessage: 'Address data was successfully saved. ',
             },
             confirmationModalMessage: 'Customer data was successfully saved. ',
+          },
+          subscription: {
+            title: 'Subscriptions',
+            lastDayToEdit: {
+              was: 'The last day to edit this delivery was:',
+              is: 'Last day to edit delivery:',
+            },
+            schedule: {
+              frequencySingleQty: '{{quantity}} unit every {{period}}',
+              frequencyManyQty: '{{quantity}} units every {{period}}',
+              period: {
+                M: 'month',
+                Ms: 'months',
+                W: 'week',
+                Ws: 'weeks',
+              },
+            },
+            skipAction: {
+              skipAllLbl: 'Skip all',
+              skipLbl: 'Skip',
+              confirmSkipTitle: 'Confirm skip',
+              skipDateLbl: 'Skip your {{date}} delivery',
+              dontSkipLbl: "Do, don't skip",
+              confirmSkipLbl: 'Yes, skip this item',
+            },
           },
           general: {
             submit: 'Submit',

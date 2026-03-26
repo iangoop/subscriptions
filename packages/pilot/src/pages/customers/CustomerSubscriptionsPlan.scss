@@ -1,0 +1,62 @@
+@import 'bootstrap/scss/functions.scss';
+@import 'bootstrap/scss/variables.scss';
+@import 'bootstrap/scss/maps.scss';
+@import 'bootstrap/scss/mixins.scss';
+@import '../../components/mixins.scss';
+
+.customer-subscriptions-plan {
+  .item-list {
+    @include media-breakpoint-up(md) {
+      margin: 0;
+      display: flex;
+      gap: map-get($spacers, 2);
+      .item-row {
+        margin: 0;
+      }
+    }
+    @include media-breakpoint-up(xl) {
+    }
+  }
+
+  .deliveries-date-row {
+    display: flex;
+    flex-direction: column;
+    gap: map-get($spacers, 2);
+    margin: map-get($spacers, 3) 0;
+    @include media-breakpoint-up(md) {
+      flex-direction: row;
+    }
+    .delivery-date-card {
+      width: 200px;
+    }
+    .last-day-to-edit {
+      font-size: 80%;
+    }
+    .delivery-date {
+      font-weight: $font-weight-bold;
+      font-size: $font-size-lg;
+      margin-bottom: map-get($spacers, 2);
+    }
+  }
+}
+
+.subscription-modal {
+  .product-row {
+    display: flex;
+    align-items: center;
+    gap: map-get($spacers, 2);
+    margin-bottom: map-get($spacers, 2);
+    .product-thumbnail {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      border-radius: $border-radius-lg;
+    }
+    @include media-breakpoint-up(md) {
+      .product-thumbnail {
+        width: 70px;
+        height: 70px;
+      }
+    }
+  }
+}

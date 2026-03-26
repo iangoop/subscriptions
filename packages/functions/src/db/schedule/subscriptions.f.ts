@@ -1,34 +1,16 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onRequest } from 'firebase-functions/v2/https';
-import { firestore } from '../../firestore';
 import { PromisePool } from '@supercharge/promise-pool';
 import {
-  DATE_FORMAT,
-  DeliveryApp,
-  deliveryDbConverter,
-  DeliveryStatus,
-  getDelivery,
-  updateDelivery,
-} from '../subscriptions';
-import { format, startOfDay } from 'date-fns';
+  findTodaysActiveSubscriptionsOnTimeFreeze,
+  updateSubscription,
+} from '../subscriptions.db';
+import { DeliveryStatus, SubscriptionStatus } from '../types/subscriptions';
+import { findTodaysActiveDeliveries, updateDelivery } from '../deliveries.db';
 
 const MAX_CONCURRENCY = 10;
-const findTodaysActiveDeliveries = async (): Promise<DeliveryApp[]> => {
-  const today = startOfDay(new Date());
-  const result = await firestore
-    .collection('deliveries')
-    .withConverter(deliveryDbConverter)
-    .where('nextOrderDate', '==', format(today, DATE_FORMAT))
-    .where('status', '==', 'A')
-    .get();
-  return result.empty
-    ? []
-    : result.docs.map((doc) => {
-        return doc.data();
-      });
-};
 
-export const processDayDeliveries = onSchedule('every day 06:00', async () => {
+export const processActiveDeliveries = async () => {
   const deliveries = await findTodaysActiveDeliveries();
   if (deliveries.length) {
     await PromisePool.for(deliveries)
@@ -40,6 +22,24 @@ export const processDayDeliveries = onSchedule('every day 06:00', async () => {
         });
       });
   }
+};
+
+export const processActiveSubscriptions = async () => {
+  const subscriptions = await findTodaysActiveSubscriptionsOnTimeFreeze();
+  if (subscriptions.length) {
+    await PromisePool.for(subscriptions)
+      .withConcurrency(MAX_CONCURRENCY)
+      .process(async (subscription) => {
+        return updateSubscription(subscription.id, {
+          status: SubscriptionStatus.Ready,
+        });
+      });
+  }
+};
+
+export const processDayDeliveries = onSchedule('every day 06:00', async () => {
+  await processActiveDeliveries();
+  await processActiveSubscriptions();
 });
 
 type PaymentWebhookRequest = {
@@ -50,6 +50,7 @@ type PaymentWebhookRequest = {
 };
 
 export const handlePaymentWebhook = onRequest(async (request, response) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { deliveryId, paymentCode, status, errorCode } =
     request.body as PaymentWebhookRequest;
   if (status === 'success') {
@@ -57,8 +58,9 @@ export const handlePaymentWebhook = onRequest(async (request, response) => {
       status: DeliveryStatus.Processing,
     });
   } else {
-    const delivery = await getDelivery(deliveryId);
+    /*const delivery = await getDelivery(deliveryId);
     if (delivery) {
+      
       const paymentInfo = delivery.paymentInfo;
       paymentInfo.forEach((info) => {
         if (info.paymentCode === paymentCode) {
@@ -72,7 +74,7 @@ export const handlePaymentWebhook = onRequest(async (request, response) => {
       });
     } else {
       //to do - log error
-    }
+    }*/
   }
 
   response.sendStatus(200);

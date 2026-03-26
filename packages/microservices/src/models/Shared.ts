@@ -27,6 +27,8 @@ export enum SubscriptionStatus {
   Active = 'A',
   Paused = 'P',
   Expired = 'E',
+  OnGoing = 'O',
+  Completed = 'C',
 }
 
 export enum SubscriptionOptionMode {

@@ -1,0 +1,33 @@
+@import 'bootstrap/scss/functions.scss';
+@import 'bootstrap/scss/variables.scss';
+@import 'bootstrap/scss/mixins.scss';
+@import '../mixins.scss';
+
+.item-row.subscription-card {
+  width: 150px;
+  @include form-card;
+  .image-container {
+    align-self: center;
+  }
+  .product-name {
+    font-size: 75%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block; /* or block or flex depending on your layout */
+  }
+  .product-price {
+    color: map-get($reds, 'red-500');
+    font-weight: $font-weight-semibold;
+  }
+  .ordered-quantity {
+    font-size: 75%;
+  }
+  .schedule {
+    font-size: 75%;
+  }
+  .can-skip {
+    text-align: center;
+    margin-top: map-get($spacers, 2);
+  }
+}

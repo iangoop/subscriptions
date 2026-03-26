@@ -23,7 +23,7 @@ export const SubscriptionSchema = Type.Object({
   expirationDate: Type.Optional(Type.Date()),
   recurringOrderCount: Type.Number({ default: 0 }),
   previousOrderDate: Type.Optional(Type.Date()),
-  nextOrderDate: Type.Optional(Type.String({ format: 'date' })),
+  orderDate: Type.Optional(Type.String({ format: 'date' })),
 });
 
 export type ISubscription = Static<typeof SubscriptionSchema> &

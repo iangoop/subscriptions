@@ -57,3 +57,60 @@ export type PaginationQuery<T> = {
 export type Archivable = {
   isActive: boolean;
 };
+
+export type Subscription = {
+  id: string;
+  customerId: string;
+  productId: string;
+  quantity: number;
+  shippingAddressId: string;
+  billingAddressId: string;
+  paymentMethodCode: string;
+  status: string;
+  schedule: string;
+  shippingMethodCode: string;
+  couponCode?: string;
+  useFixedPrice: boolean;
+  currency?: string;
+  fixedPrice?: number;
+  expirationDate?: string;
+  recurringOrderCount: number;
+  previousOrderDate?: string;
+  orderDate?: string;
+};
+
+export type Delivery = {
+  id: string;
+  customerId: string;
+  shippingAddressId: string;
+  status: string;
+  orderDate: string;
+  paymentInfo: {
+    paymentCode: string;
+    errorCode: string;
+    attemptCount: number;
+    deliveries: string[];
+  }[];
+};
+
+export type SubscriptionPlanningReferenceData = {
+  customerAddresses: CustomerAddress[];
+  products: Product[];
+};
+
+export type SubscriptionFromPlanning = Subscription & {
+  canSkip: boolean;
+};
+
+export type SubscriptionsGroup = {
+  delivery?: Delivery;
+  subscriptions: SubscriptionFromPlanning[];
+  isOnDateFreeze: boolean;
+  canSkipAll: boolean;
+  lastDayToEdit?: string;
+};
+
+export type SubscriptionPlanningRecord = {
+  planning: Record<string, Record<string, SubscriptionsGroup>>;
+  data: SubscriptionPlanningReferenceData;
+};

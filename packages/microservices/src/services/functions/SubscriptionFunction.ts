@@ -8,3 +8,13 @@ export async function fetchNextScheduledDate(date: string, schedule: string) {
   );
   return data.nextDate;
 }
+
+export async function fetchCustomerSubscriptionPlan(
+  customerId: string,
+  monthsToShow: number,
+) {
+  return fetchJson(`${functionsUrl}/customer-subscription-planning`, {
+    customerId,
+    monthsToShow,
+  });
+}
