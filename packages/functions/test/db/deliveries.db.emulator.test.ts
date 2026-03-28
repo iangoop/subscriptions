@@ -4,7 +4,6 @@ import {
   updateDelivery,
 } from '../../src/db/deliveries.db';
 import {
-  DeliveryDb,
   DeliveryStatus,
   deliveryDbConverter,
 } from '../../src/db/types/subscriptions';
@@ -38,12 +37,24 @@ describe('deliveries.db (Emulator)', () => {
 
   describe('findTodaysActiveDeliveries', () => {
     it('should find active deliveries for today or earlier', async () => {
-      jest.spyOn(subUtil, 'today').mockReturnValue(subUtil.strToDate(BASE_DATE));
+      jest
+        .spyOn(subUtil, 'today')
+        .mockReturnValue(subUtil.strToDate(BASE_DATE));
 
       const deliveryToday = makeDeliveryData({ orderDate: BASE_DATE });
-      const deliveryPast = makeDeliveryData({ orderDate: '2026-02-01', customerId: 'cust2' });
-      const deliveryFuture = makeDeliveryData({ orderDate: '2026-02-15', customerId: 'cust3' });
-      const deliveryInactive = makeDeliveryData({ orderDate: BASE_DATE, status: DeliveryStatus.Processing, customerId: 'cust4' });
+      const deliveryPast = makeDeliveryData({
+        orderDate: '2026-02-01',
+        customerId: 'cust2',
+      });
+      const deliveryFuture = makeDeliveryData({
+        orderDate: '2026-02-15',
+        customerId: 'cust3',
+      });
+      const deliveryInactive = makeDeliveryData({
+        orderDate: BASE_DATE,
+        status: DeliveryStatus.Processing,
+        customerId: 'cust4',
+      });
 
       const delRef1 = db.collection('deliveries').doc('del1');
       const delRef2 = db.collection('deliveries').doc('del2');
@@ -58,7 +69,7 @@ describe('deliveries.db (Emulator)', () => {
       const result = await findTodaysActiveDeliveries(db);
 
       expect(result).toHaveLength(2);
-      const orderDates = result.map(d => d.orderDate).sort();
+      const orderDates = result.map((d) => d.orderDate).sort();
       expect(orderDates).toEqual(['2026-02-01', BASE_DATE]);
     });
   });
@@ -70,9 +81,15 @@ describe('deliveries.db (Emulator)', () => {
       const deliveryRef = db.collection('deliveries').doc(deliveryId);
       await deliveryRef.set(deliveryData);
 
-      await updateDelivery(deliveryId, { status: DeliveryStatus.WaitingPayment }, db);
+      await updateDelivery(
+        deliveryId,
+        { status: DeliveryStatus.WaitingPayment },
+        db,
+      );
 
-      const updatedSnap = await deliveryRef.withConverter(deliveryDbConverter).get();
+      const updatedSnap = await deliveryRef
+        .withConverter(deliveryDbConverter)
+        .get();
       const updatedData = updatedSnap.data();
       expect(updatedData?.status).toBe(DeliveryStatus.WaitingPayment);
       expect(updatedData?.updated).toBeDefined();

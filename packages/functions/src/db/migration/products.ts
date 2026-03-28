@@ -1,4 +1,4 @@
-import { QueryDocumentSnapshot } from 'firebase-functions/v1/firestore';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { firestore } from '../../firestore';
 
 export const exportProduct = async (data: Record<string, string>[]) => {

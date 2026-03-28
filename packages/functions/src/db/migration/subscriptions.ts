@@ -1,4 +1,4 @@
-import { DocumentSnapshot } from 'firebase-functions/v1/firestore';
+import { DocumentSnapshot } from 'firebase-admin/firestore';
 import { firestore } from '../../firestore';
 import {
   DeliveryDb,

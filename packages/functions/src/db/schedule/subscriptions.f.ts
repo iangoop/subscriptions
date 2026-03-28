@@ -1,5 +1,4 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { onRequest } from 'firebase-functions/v2/https';
 import { PromisePool } from '@supercharge/promise-pool';
 import {
   findTodaysActiveSubscriptionsOnTimeFreeze,
@@ -41,7 +40,7 @@ export const processDayDeliveries = onSchedule('every day 06:00', async () => {
   await processActiveDeliveries();
   await processActiveSubscriptions();
 });
-
+/*
 type PaymentWebhookRequest = {
   deliveryId: string;
   paymentCode: string;
@@ -50,7 +49,6 @@ type PaymentWebhookRequest = {
 };
 
 export const handlePaymentWebhook = onRequest(async (request, response) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { deliveryId, paymentCode, status, errorCode } =
     request.body as PaymentWebhookRequest;
   if (status === 'success') {
@@ -58,7 +56,7 @@ export const handlePaymentWebhook = onRequest(async (request, response) => {
       status: DeliveryStatus.Processing,
     });
   } else {
-    /*const delivery = await getDelivery(deliveryId);
+    const delivery = await getDelivery(deliveryId);
     if (delivery) {
       
       const paymentInfo = delivery.paymentInfo;
@@ -74,8 +72,9 @@ export const handlePaymentWebhook = onRequest(async (request, response) => {
       });
     } else {
       //to do - log error
-    }*/
+    }
   }
 
   response.sendStatus(200);
 });
+*/

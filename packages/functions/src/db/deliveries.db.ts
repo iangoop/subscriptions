@@ -1,4 +1,9 @@
-import { FieldValue, Firestore } from 'firebase-admin/firestore';
+import {
+  DocumentReference,
+  DocumentSnapshot,
+  FieldValue,
+  Firestore,
+} from 'firebase-admin/firestore';
 import {
   DeliveryApp,
   DeliveryDb,
@@ -196,33 +201,69 @@ export const removeSubscriptionFromDelivery = async (
 };
 
 /**
+ * Returns a Firestore DocumentReference for a delivery document.
+ *
+ * The delivery document ID is constructed using the `customerId`, `shippingAddressId`, and `orderDate`
+ * from the provided `deliveryKey`.
+ *
+ * @param {DeliveryKey} deliveryKey - An object containing the delivery key fields: `customerId`, `shippingAddressId`, and `orderDate`.
+ * @param {Firestore} [db=firestore] - The Firestore database instance to use.
+ * @returns {DocumentReference} A DocumentReference to the delivery document.
+ */
+const getDeliveryReference = (
+  deliveryKey: DeliveryKey,
+  db: Firestore = firestore,
+): DocumentReference => {
+  const deliveryId = `${deliveryKey.customerId}_${deliveryKey.shippingAddressId}_${deliveryKey.orderDate}`;
+  return db.collection('deliveries').doc(deliveryId);
+};
+
+/**
+ * Reads a delivery document within a Firestore transaction.
+ *
+ * This function uses the `deliveryKey` to locate the delivery document and retrieves its snapshot
+ * using the provided `transaction`.
+ *
+ * @param {FirebaseFirestore.Transaction} transaction - The Firestore transaction object.
+ * @param {DeliveryKey} deliveryKey - An object containing the delivery key fields: `customerId`, `shippingAddressId`, and `orderDate`.
+ * @param {Firestore} [db=firestore] - The Firestore database instance to use.
+ * @returns {Promise<DocumentSnapshot>} A promise that resolves to the DocumentSnapshot of the delivery.
+ */
+const readDelivery = async (
+  transaction: FirebaseFirestore.Transaction,
+  deliveryKey: DeliveryKey,
+  db: Firestore = firestore,
+): Promise<DocumentSnapshot> => {
+  return transaction.get(getDeliveryReference(deliveryKey, db));
+};
+
+/**
  * Adds subscription information to a delivery document within a Firestore transaction.
  *
- * This function determines the `deliveryId` based on `customerId`, `shippingAddressId`, and `orderDate`
- * from `deliveryKey`. It then checks if a delivery document with this ID already exists:
+ * This function uses the provided `deliverySnap` to determine if the delivery already exists:
  * - If it exists, the function updates its `paymentInfo` by adding the `subscriptionId` to the relevant entry.
- * - If it does not exist, a new delivery document is created with the provided subscription's payment information
- *   and marked with 'Active' status.
+ * - If it does not exist, a new delivery document is created with the provided subscription's payment information,
+ *   marked with 'Active' status, and the `isFirstDelivery` flag set based on `isFirstTimeDelivery`.
  *
  * @param {FirebaseFirestore.Transaction} transaction - The Firestore transaction object.
  * @param {string} subscriptionId - The ID of the subscription to add to the delivery.
  * @param {string} subscriptionPaymentCode - The payment code associated with the subscription.
  * @param {DeliveryKey} deliveryKey - An object containing the delivery key fields: `customerId`, `shippingAddressId`, and `orderDate`.
- * @param {boolean} isFirstTimeDelivery - A boolean indicating if this is the first time delivery ever for the customer at one particular shipping address.
- * @returns {Promise<void>} A promise that resolves when the operation within the transaction is complete (i.e., a set or update operation has been queued).
+ * @param {DocumentSnapshot} deliverySnap - The DocumentSnapshot of the delivery document.
+ * @param {boolean} isFirstTimeDelivery - A boolean indicating if this is the first delivery ever for the customer at this shipping address.
+ * @param {Firestore} db - The Firestore database instance to use.
+ * @returns {void}
  */
-const addSubscriptionInfoToDelivery = async (
+const addSubscriptionInfoToDelivery = (
   transaction: FirebaseFirestore.Transaction,
   subscriptionId: string,
   subscriptionPaymentCode: string,
   deliveryKey: DeliveryKey,
+  deliverySnap: DocumentSnapshot,
   isFirstTimeDelivery: boolean,
   db: Firestore,
 ) => {
-  const deliveryId = `${deliveryKey.customerId}_${deliveryKey.shippingAddressId}_${deliveryKey.orderDate}`;
-  const deliveryRef = db.collection('deliveries').doc(deliveryId);
-
-  const deliverySnap = await transaction.get(deliveryRef);
+  const deliveryRef = getDeliveryReference(deliveryKey, db);
   if (deliverySnap.exists) {
     const delivery = deliverySnap.data()! as DeliveryDb;
     const paymentInfo = addSubscriptionToDeliveryPaymentInfo(
@@ -282,13 +323,16 @@ export const persistSubscriptionToDelivery = async (
   }
 
   await db.runTransaction(async (tx) => {
+    // all reads must be done before any writes
+    const deliverySnap = await readDelivery(tx, subscriptionData, db);
     createOngoingSubscription(tx, subscriptionId, subscriptionData, db);
 
-    await addSubscriptionInfoToDelivery(
+    addSubscriptionInfoToDelivery(
       tx,
       subscriptionId,
       subscriptionData.paymentCode,
       subscriptionData,
+      deliverySnap,
       isFirstTimeDelivery,
       db,
     );

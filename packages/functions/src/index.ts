@@ -4,12 +4,12 @@ import { exportProduct } from './db/migration/products';
 import { onRequest } from 'firebase-functions/v2/https';
 import { Customer, exportCustomer } from './db/migration/customers';
 import { exportSubscriptions } from './db/migration/subscriptions';
-import { SubscriptionPayload } from './db/subscriptions.db';
 import { app, covert } from './app';
 import {
   Configuration,
   exportConfigurations,
 } from './db/migration/configurations';
+import { SubscriptionPayload } from './db/types/subscriptions';
 
 /** EXPORT ALL FUNCTIONS
  *

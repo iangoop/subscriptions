@@ -429,7 +429,7 @@ export const createFirstTimeDelivery = async (
 export const scheduleSubscription = async (
   subscriptionId: string,
   subscription: SubscriptionDb,
-) => {
+): Promise<void> => {
   const subscriptionUpdate: Partial<SubscriptionDb> = {
     scheduled: true,
     status: SubscriptionStatus.Active,
