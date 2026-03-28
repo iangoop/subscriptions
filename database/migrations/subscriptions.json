@@ -1,0 +1,116 @@
+{
+  "deliveries": [],
+  "subscriptions": [
+    {
+      "customerId": { "platformId": "58N0ZS9M" },
+      "productId": { "sku": "I9517324" },
+      "shippingAddressId": { "platformId": "QWJJA0Q9" },
+      "quantity": 2,
+      "schedule": "1M",
+      "status": "A",
+      "shippingMethodCode": "nextday",
+      "useFixedPrice": "false",
+      "recurringOrderCount": "0",
+      "paymentCode": "abcd"
+    },
+    {
+      "customerId": { "platformId": "58N0ZS9M" },
+      "productId": { "sku": "I9185403" },
+      "shippingAddressId": { "platformId": "QWJJA0Q9" },
+      "quantity": 1,
+      "schedule": "1M",
+      "status": "A",
+      "shippingMethodCode": "nextday",
+      "useFixedPrice": "false",
+      "recurringOrderCount": "0",
+      "paymentCode": "efgh"
+    },
+    {
+      "customerId": { "platformId": "58N0ZS9M" },
+      "productId": { "sku": "I0045304" },
+      "shippingAddressId": { "platformId": "QWJJA0Q9" },
+      "quantity": 1,
+      "schedule": "1M",
+      "status": "A",
+      "shippingMethodCode": "nextday",
+      "useFixedPrice": "false",
+      "recurringOrderCount": "0",
+      "paymentCode": "abcd"
+    },
+    {
+      "customerId": { "platformId": "58N0ZS9M" },
+      "productId": { "sku": "I9878420" },
+      "shippingAddressId": { "platformId": "QWJJA0Q9" },
+      "quantity": 1,
+      "schedule": "1M",
+      "status": "E",
+      "shippingMethodCode": "nextday",
+      "useFixedPrice": "false",
+      "recurringOrderCount": "0",
+      "expirationDate": "2025-05-15T17:57:59",
+      "paymentCode": "abcd"
+    },
+    {
+      "customerId": { "platformId": "58N0ZS9M" },
+      "productId": { "sku": "I9517324" },
+      "shippingAddressId": { "platformId": "HM1ZTK8J" },
+      "quantity": 1,
+      "schedule": "2M",
+      "status": "A",
+      "shippingMethodCode": "nextday",
+      "useFixedPrice": "false",
+      "recurringOrderCount": "0",
+      "paymentCode": "abcd"
+    },
+
+    {
+      "customerId": { "platformId": "FB39WH99" },
+      "productId": { "sku": "I9517324" },
+      "shippingAddressId": { "platformId": "9ALD6KEI" },
+      "quantity": 2,
+      "schedule": "1M",
+      "status": "A",
+      "shippingMethodCode": "nextday",
+      "useFixedPrice": "false",
+      "recurringOrderCount": "0",
+      "paymentCode": "abcd"
+    },
+    {
+      "customerId": { "platformId": "FB39WH99" },
+      "productId": { "sku": "I9185403" },
+      "shippingAddressId": { "platformId": "9ALD6KEI" },
+      "quantity": 1,
+      "schedule": "2M",
+      "status": "A",
+      "shippingMethodCode": "nextday",
+      "useFixedPrice": "false",
+      "recurringOrderCount": "0",
+      "paymentCode": "efgh"
+    },
+    {
+      "customerId": { "platformId": "FB39WH99" },
+      "productId": { "sku": "I0045304" },
+      "shippingAddressId": { "platformId": "9ALD6KEI" },
+      "quantity": 1,
+      "schedule": "2W",
+      "status": "A",
+      "shippingMethodCode": "nextday",
+      "useFixedPrice": "false",
+      "recurringOrderCount": "0",
+      "paymentCode": "abcd"
+    },
+    {
+      "customerId": { "platformId": "FB39WH99" },
+      "productId": { "sku": "I9878420" },
+      "shippingAddressId": { "platformId": "9ALD6KEI" },
+      "quantity": 1,
+      "schedule": "1M",
+      "status": "A",
+      "shippingMethodCode": "nextday",
+      "useFixedPrice": "false",
+      "recurringOrderCount": "0",
+      "expirationDate": "2025-05-15T17:57:59",
+      "paymentCode": "abcd"
+    }
+  ]
+}

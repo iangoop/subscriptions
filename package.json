@@ -21,7 +21,8 @@
     "build:pilot:dev": "dotenvx run -f .secrets -f .vars -- npm run build -w @subscriptions/pilot",
     "build:functions": "npm run build -w @subscriptions/functions",
     "test": "jest --config ./jest.config.js",
-    "test:database": "jest --config ./jest.db.config.js"
+    "test:database": "jest --config ./jest.db.config.js",
+    "sync:emulator": "node database/migrations/publish-to-emulator.js"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "^1.5.0",

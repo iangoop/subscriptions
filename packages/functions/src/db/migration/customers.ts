@@ -1,4 +1,8 @@
-import { DocumentReference, QuerySnapshot, QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import {
+  DocumentReference,
+  QuerySnapshot,
+  QueryDocumentSnapshot,
+} from 'firebase-admin/firestore';
 import { isEqual, omit } from 'lodash';
 import { firestore } from '../../firestore';
 

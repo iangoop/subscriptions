@@ -1,15 +1,7 @@
 import * as glob from 'glob';
 import * as _ from 'lodash';
-import { exportProduct } from './db/migration/products';
 import { onRequest } from 'firebase-functions/v2/https';
-import { Customer, exportCustomer } from './db/migration/customers';
-import { exportSubscriptions } from './db/migration/subscriptions';
-import { app, covert } from './app';
-import {
-  Configuration,
-  exportConfigurations,
-} from './db/migration/configurations';
-import { SubscriptionPayload } from './db/types/subscriptions';
+import { app } from './app';
 
 /** EXPORT ALL FUNCTIONS
  *
@@ -43,28 +35,4 @@ for (let f = 0, fl = files.length; f < fl; f++) {
   }
 }
 
-covert.post('/migrate/products', async (req, res) => {
-  await exportProduct(req.body as Record<string, string>[]);
-  res.send('ok');
-});
-
-covert.post('/migrate/customers', async (req, res) => {
-  const customerList = req.body as Customer[];
-  await exportCustomer(customerList);
-  res.send('ok');
-});
-
-covert.post('/migrate/subscriptions', async (req, res) => {
-  const deliveryList = req.body as SubscriptionPayload;
-  await exportSubscriptions(deliveryList);
-  res.send('ok');
-});
-
-covert.post('/migrate/configurations', async (req, res) => {
-  const configurationList = req.body as Configuration[];
-  await exportConfigurations(configurationList);
-  res.send('ok');
-});
-
-export const management = onRequest(covert);
 export const subscriptions = onRequest(app);
