@@ -44,6 +44,7 @@ import { SubscriptionPayload } from '../types/subscriptions';
 export const storageMigrationTrigger = onObjectFinalized(
   {
     bucket: process.env.CUSTOM_FIREBASE_STORAGEBUCKET,
+    region: process.env.CUSTOM_FIREBASE_REGION,
     cpu: 1,
     memory: '1GiB',
     timeoutSeconds: 540, // Increased timeout for large files
