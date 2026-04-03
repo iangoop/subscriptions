@@ -11,6 +11,14 @@
         "default": [
           "fir-f51cb"
         ]
+      },
+      "storage": {
+        "default": [
+          "fir-f51cb.appspot.com"
+        ],
+        "migration": [
+          "fir-f51cb"
+        ]
       }
     }
   },

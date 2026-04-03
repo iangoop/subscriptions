@@ -30,3 +30,22 @@ jobs:
             --location=${{ vars.CUSTOM_FIREBASE_REGION }} \
             --policy=artifact-registry-policy.json \
             --no-dry-run
+  firebase-config:
+    name: Set Firebase config
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo (required by Actions)
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '24'
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Define storage targets
+        run: |
+          firebase target:apply storage default ${{ vars.CUSTOM_FIREBASE_STORAGEBUCKET }}
+          firebase target:apply storage migration ${{ vars.CUSTOM_FIREBASE_STORAGEBUCKET_MIGRATION }}

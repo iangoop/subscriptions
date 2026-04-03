@@ -5,6 +5,12 @@ Firebase development environment to support microservices and FE nodes
 Start emulators
 `firebase emulators:start`
 
+Initial database input
+`npm run migrate:emulator -- products.json products prd1`
+`npm run migrate:emulator -- customers.json customers cu1`
+`npm run migrate:emulator -- configurations.json configurations co1`
+`npm run migrate:emulator -- subscriptions.json subscriptions su1`
+
 Test GitHub actions locally
 1. Install [docker](https://www.docker.com/)
 2. Install [act](https://github.com/nektos/act)

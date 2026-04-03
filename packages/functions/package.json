@@ -14,7 +14,7 @@
     "test": "jest --config ../../jest.config.js"
   },
   "engines": {
-    "node": "20"
+    "node": "24"
   },
   "main": "lib/src/index.js",
   "dependencies": {

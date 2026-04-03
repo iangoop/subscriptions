@@ -9,7 +9,7 @@ const path = require('path');
 
 // Configuration
 const EMULATOR_PORT = '8085';
-const PROJECT_ID = 'fir-f51cb';
+const PROJECT_ID = process.env.CUSTOM_FIREBASE_PROJECTID;
 const TOPIC_NAME = 'sync-data';
 
 // Get command line arguments
@@ -22,7 +22,7 @@ if (!fileName || !type || !idempotencyKey) {
   process.exit(1);
 }
 
-const filePath = path.join(__dirname, fileName);
+const filePath = path.join(__dirname, '../database/migrations', fileName);
 
 if (!fs.existsSync(filePath)) {
   console.error(`File not found: ${filePath}`);

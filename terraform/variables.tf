@@ -23,6 +23,11 @@ variable "project_storagebucket" {
   description = "Firebase env variable"
 }
 
+variable "project_storagebucket_migration" {
+  type        = string
+  description = "Firebase env variable for migration storage bucket"
+}
+
 variable "project_messagingsenderid" {
   type        = string
   description = "Firebase env variable"

@@ -58,6 +58,12 @@ resource "github_actions_variable" "firebase_storagebucket" {
   value         = var.project_storagebucket
 }
 
+resource "github_actions_variable" "firebase_storagebucket_migration" {
+  repository    = var.github_repo
+  variable_name = "CUSTOM_FIREBASE_STORAGEBUCKET_MIGRATION"
+  value         = var.project_storagebucket_migration
+}
+
 resource "github_actions_variable" "firebase_messagingsenderid" {
   repository    = var.github_repo
   variable_name = "CUSTOM_FIREBASE_MESSAGINGSENDERID"

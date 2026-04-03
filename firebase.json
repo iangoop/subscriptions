@@ -53,9 +53,16 @@
       ]
     }
   ],
-  "storage": {
-    "rules": "storage.rules"
-  },
+  "storage": [
+    {
+      "target": "default",
+      "rules": "storage.rules"
+    },
+    {
+      "target": "migration",
+      "rules": "storage.rules"
+    }
+  ],
   "emulators": {
     "auth": {
       "port": 9099

@@ -67,6 +67,7 @@ node_modules/
 .vars
 .env
 env/*
+packages/*/.env.local
 !env/base.env
 
 terraform/.terraform/

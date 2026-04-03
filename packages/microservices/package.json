@@ -5,7 +5,7 @@
   "main": "lib/src/index.js",
   "type": "commonjs",
   "engines": {
-    "node": "20"
+    "node": "24"
   },
   "scripts": {
     "build": "tsc && tsc-alias",
